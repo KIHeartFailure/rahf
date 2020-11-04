@@ -1,0 +1,73 @@
+
+
+# Variables for tabs/mods -------------------------------------------------
+
+
+tabvars <- c(
+  # demo
+  "shf_sex",
+  "shf_age",
+
+  # organizational
+  "shf_indexyear",
+  "shf_location",
+  "shf_followuphfunit",
+  "shf_followuplocation",
+
+  # clinical factors and lab measurments
+  "shf_nyha",
+  "shf_bmi",
+  "shf_bpsys",
+  "shf_bpdia",
+  "shf_heartrate",
+  "shf_gfrckdepi",
+  "shf_potassium",
+  "shf_hb",
+  "shf_ntpropbnp",
+
+  # treatments
+  "shf_rasarni",
+  "shf_mra",
+  "shf_diuretic",
+  "shf_nitrate",
+  "shf_asaantiplatelet",
+  "shf_anticoagulantia",
+  "shf_statin",
+  "shf_bbl",
+  "shf_device_cat",
+
+  # comorbs
+  "shf_smoking",
+  "sos_com_diabetes",
+  "sos_com_hypertension",
+  "sos_com_ihd",
+  "sos_com_peripheralartery",
+  "sos_com_stroke",
+  "sos_com_af",
+  "sos_com_valvular",
+  "sos_com_liver",
+  "sos_com_cancer3y",
+  "sos_com_copd",
+  "sos_com_renal",
+
+  # socec
+  "scb_famtype",
+  "scb_child",
+  "scb_education",
+  "scb_dispincome_cat2"
+)
+
+modvars1 <- c(
+  "shf_sex",
+  "shf_age",
+  "sos_com_diabetes",
+  "sos_com_hypertension",
+  "sos_com_ihd",
+  "sos_com_af"
+)
+modvars2 <- c(
+  modvars1,
+  "scb_famtype",
+  "scb_education",
+  "scb_dispincome_cat2"
+)

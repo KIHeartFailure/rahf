@@ -1,0 +1,75 @@
+```{r km, cache=cacheon}
+
+kmfunc <- function(time, event, eventname, yposplus = rep(0, 4)) {
+  fit <- survfit(formula(paste0("Surv(", time, ",", event, "=='Yes') ~ shf_ef_cat2 + sos_com_ra")),
+    data = pdata %>% filter(casecontrol == "Case")
+  )
+
+  ## logrank
+  #sd <- survdiff(formula(paste0("Surv(", time, ",", event, "=='Yes') ~ shf_ef_cat + sos_com_ra")),
+  #  data = pdata %>% filter(casecontrol == "Case")
+  #)
+
+  #p <- dF(pchisq(sd$chisq, length(sd$n) - 1, lower.tail = FALSE), dig = 3, p = TRUE)
+
+  # c(bottom, left, top, right)
+  par(mar = c(4, 6, 1, 11) + 0.1)
+  plots <- plot(fit,
+    fun = "cumhaz",
+    ylab = eventname,
+    xscale = 30.5,
+    yscale = 100,
+    col = rep(global_kicols[1:2], each = 2),
+    mark.time = FALSE,
+    bty = "n",
+    xlim = c(0, 5 * 365),
+    ylim = c(0, 1),
+    xlab = "Years",
+    axes = F,
+    lwd = 1.5,
+    lty = c(1, 2),
+    xaxs = "i", yaxs = "i"
+  )
+
+  axis(2, seq(0, 1, 0.25), seq(0, 100, 25), las = 2)
+  axis(1, at = seq(0, 5, 1) * 365, seq(0, 5, 1))
+
+  ypos <- 1 - summary(fit, 5 * 365)$surv
+
+  ytext <- paste0(rep(levels(pdata$shf_ef_cat2), each = 2), "/", rep(c("No RA", "RA"), 2))
+
+  ylabs <- bind_cols(ypos = ypos, ytext = ytext) %>%
+    arrange(ypos)
+
+  mtext(
+    side = 4,
+    line = .2,
+    at = ylabs$ypos + yposplus,
+    ylabs$ytext,
+    las = 1
+  )
+
+  #text(2 * 365, 0.75, paste0("Log-rank p = ", p), pos = 4)
+}
+```
+
+```{r chcvdeathhfstrokemihosp, fig.cap="Cumulative hazard CVD/First HF/stroke/MI hospitalization", cache=cacheon, dependson="km"}
+kmfunc(
+  time = "sos_outtime_deathcvhosphfstrokemi", event = "sos_out_deathcvhosphfstrokemi", eventname = "CVD/First HF/stroke/MI hospitalization (%)",
+  yposplus = c(0.05, 0.07, 0.07, 0.11)
+)
+```
+
+```{r chhfhosp, fig.cap="Cumulative hazard First HF hospitalization", cache=cacheon, dependson="km"}
+kmfunc(
+  time = "sos_outtime_hosphf", event = "sos_out_hosphf", eventname = "First HF hospitalization (%)",
+  yposplus = c(0.01, 0.02, 0.025, 0.05)
+)
+```
+
+```{r chdeath, fig.cap="Cumulative hazard Death", cache=cacheon, dependson="km"}
+kmfunc(
+  time = "sos_outtime_death", event = "sos_out_death", eventname = "Death (%)",
+  yposplus = c(0.02, 0.03, 0.05, 0.09)
+)
+```

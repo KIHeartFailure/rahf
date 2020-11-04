@@ -1,0 +1,187 @@
+---
+title: 'SAP/Statistical report: Differences in HF phenotype between incident HF patients with and without prior RA'
+subtitle: 'DRAFT'
+author: 'Statistician: Lina Benson'
+  
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    fig_caption: yes
+    fig_height: 7
+    fig_width: 7
+    number_sections: yes
+link-citations: yes
+bibliography: references.bib
+nocite: '@*'
+header-includes:
+   - \usepackage{draftwatermark}
+---
+
+\newpage 
+\tableofcontents 
+\listoftables
+\listoffigures
+\newpage
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE, include = TRUE, comment = "",
+  warning = FALSE, message = FALSE, fig.pos = "H",
+  fig.path = "../output/figs/"
+)
+options(knitr.kable.NA = "")
+```
+
+```{r adjust_directory_if_needed, include=FALSE}
+# Uncomment lines below if rmd file is placed in a subdirectory
+knitr::opts_knit$set(root.dir = normalizePath("../"))
+```
+
+```{r load_project}
+# 1. Set options in config/global.dcf
+# 2. Load packages listed in config/global.dcf
+# 3. Import functions and code in lib directory
+
+ProjectTemplate::reload.project()
+
+cacheon <- TRUE
+```             
+
+# Data handling
+
+## Data source
+
+SHFDB3, https://kiheartfailure.github.io/shfdb3/, v 3.1.5. 
+
+## Inclusion/exclusion criteria
+
+```{r flow}
+mykable(flow, caption = "Flowchart")
+mykable(ncontrols, caption = "Number of controls / case", scale_down = F)
+```
+
+First patient in: `r min(pdata$shf_indexdtm)` and last patient in: `r max(pdata$shf_indexdtm)`.  
+
+Johan: If start at 2003-01-01 give pats 2 years to find possible ra diagnosis in NPR. Is this vettigt? Will pats have at least two visits to internal/reuma in 2 years? 
+
+## HF/EF
+
+By excluding cases with previous diagnosis of HF in NPR/SwedeHF the aim is to keep only incident HF cases and thereby
+aim to discuss directionality. 
+
+EF is recorded in SwedeHF. The primary analysis will be on EF </=> 40% due to the small number of patients 
+with previous RA. Analyses EF <30% (rEF), 40-49% (mrEF) and =>50% (pEF) will also be presented.  
+
+## Controls for HF
+
+Eligible controls were persons without re-used and changed Swedish personal identity numbers (PINs) and free of HF, defined either in the National Patient registry (ICD-10: I110, I130, I132, I255, I420, I423, 1425-9, I43, I50, J81, K761, R57, ICD-9: 414W, 425E-H, 425W, 425X, 428) or SwedeHF, at the end of the year of the index date for the case and matched by gender, year of birth and county of residence at index. For posts with age >= 90 years, controls were only matched by gender and year of birth due to the smaller available number of controls. The selection of controls was performed without replacement.
+
+## Definition of RA 
+
+Two visits (spec öppenvård) with HDIA M05, M06, where at least on of the visits 
+should be at an internal medicin/reumatological ward (MVO 101, 131). 
+The onset of RA diagnosis is then defined to the second visit. If a visit with 
+HDIA M073, L405, M45, M46, M32 occurs prior to the second visit this patient 
+is not defined as a RA. 
+
+## Variables created specifically for this project
+
+```{r sos}
+mykable(metaout, caption = "Additional outcomes from NPR", scale_down = F)
+```
+
+# Statistical analysis 
+
+## General
+
+All analyses were performed using `r sessionInfo()$R.version$version.string` [@r]. 
+The level of significance is set to 5%, two-sided. No adjustment for multiple 
+comparisons were made and therefore the results should be viewed with some care.
+
+## Baseline characteristics
+
+```{r, child = "../src/tab1.Rmd"}
+
+```
+
+## Association between incident HF and prior RA
+
+The association between incident HF and prior RA is investigated: 
+
+1) Using a conditional logistic regression where the outcome is if a person 
+is a HF case or a control. The matched "pairs" are included as a strata variable and 
+EF and RA as main effects and with an interaction term. 
+In this analysis both cases and controls are included. 
+
+2) Using a logistic regression with EF as outcome. In this analysis only cases are included. 
+For the outcome with r/mr/pEF multinominal regression is used. 
+
+Adjustment is performed for variables that are present at the 
+time of the incident HF, and for the controls, the matched case's time. 
+
+Adjustment is partly performed for `r paste0(modvars1, collapse = ", ")` 
+
+and partly `r paste0(modvars2, collapse = ", ")`.
+
+\clearpage
+\newpage
+
+```{r, child = "../src/cortab.Rmd"}
+
+```
+
+```{r, child = "../src/mortab.Rmd"}
+
+```
+
+## Outcomes after HF
+
+For this analysis only cases (patients with HF) are selected. 
+The patients with prior RA are compared to those without prior RA. 
+
+The following outcomes are considered: 
+
+- Cardiovascular mortality/first hospitalization for HF/stroke/MI (primary endpoint)
+- First hospitalization for HF
+- All-cause mortality
+
+Incidence per 1000 py is calculated with 95% Poisson confidence intervals. 
+The outcomes are presented with cumulative hazard curves. 
+Cox proportional hazards regressions are used to evaluate the association 
+between prior RA and the respective outcomes. The interaction between 
+prior RA and EF is included in the model and adjustment performed on variables that are present at the 
+time of the incident HF for the same variables as in the previous models. 
+Data are censored at 2018-12-31 or death/emigration. 
+
+\clearpage
+\newpage
+
+```{r, child = "../src/km.Rmd"}
+
+```
+
+```{r, child = "../src/coxtab.Rmd"}
+
+```
+
+\clearpage
+\newpage
+
+# Reproducibility
+
+## R session information {#sessioninfo}
+
+```{r sessinfo}
+sessionInfo()
+```
+
+## R code
+
+The R code for all data handling and statistical analyses are found: 
+https://github.com/KIHeartFailure/rahf. On publication
+the repository will be made public so as to 
+link to it from the resulting article for increased transparency and code sharing.
+No data or output is stored in the repository. 
+
+# References
