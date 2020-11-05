@@ -1,69 +1,84 @@
 ```{r tab1, cache=cacheon}
 
-tab1_tmp <- CreateTableOne(
-  vars = tabvars,
-  strata = c("sos_com_ra", "casecontrol", "shf_ef_cat2"),
-  data = pdata
-)
-tab1 <- print(tab1_tmp,
-  varLabels = TRUE, missing = TRUE, printToggle = FALSE, nonnormal = tabvars,
+tab1 <- print(
+  CreateTableOne(
+    vars = tabvars,
+    strata = c("sos_com_ra", "casecontrol", "shf_ef_cat2"),
+    data = pdata
+  ),
+  missing = FALSE,
+  printToggle = FALSE,
+  nonnormal = tabvars,
   test = FALSE,
-  catDigits = 1, contDigits = 1,
+  catDigits = 1,
+  contDigits = 1,
   explain = FALSE,
   noSpaces = TRUE
 )
 
-tab1out <- as_tibble(cbind(
-  var = rownames(tab1), tab1[, c(1:8)] 
-),
-.name_repair = "unique"
-)
-# tab1out <- as_tibble(cbind(rownames(tab1), tab1[, 6], tab1[, c(1:2, 5, 3)]))
-
-tab1out <- tab1out %>%
+tab1 <- data.frame(tab1) %>%
+  rownames_to_column(var = "var") %>%
+  # remove NA
+  mutate(across(everything(), str_replace_all, fixed("NA [NA, NA]"), "-")) %>%
+  mutate(across(everything(), str_replace_all, fixed("0 (NaN)"), "-")) %>%
+  # remove = Yes
+  mutate(across(everything(), str_replace_all, fixed(" = Yes"), "")) %>%
   mutate(
-    tmp_varsforfoot = var,
-    var = sub("  ", ". ", var),
-    var = sanitize_text(var)
+    var_tmp = str_split(var, " = ", simplify = TRUE)[, 1],
+    val_tmp = str_split(var, " = ", simplify = TRUE)[, 2]
   )
 
+tab1 <- left_join(tab1,
+  meta.variables.Sheet.1 %>%
+    select(variable, label, unit),
+  by = c("var_tmp" = "variable")
+) %>%
+  mutate(
+    Variable = coalesce(label, var_tmp),
+    Variable = if_else(!is.na(unit),
+      paste0(Variable, " (", unit, ")"),
+      Variable
+    ),
+    Variable = if_else(val_tmp != "",
+      paste0(Variable, " ", val_tmp),
+      Variable
+    )
+  )
 
-## add footnote about ras (arb, aceir, arni)
-
-tab1out$var <- ifelse(stri_extract_first_words(tab1out$tmp_varsforfoot) == "shf_ras",
-  paste0(tab1out$var, footnote_marker_symbol(1)), tab1out$var
+write.xlsx(tab1 %>%
+  select(Variable, No.Case..40.:Yes.Control...40.),
+paste0("./output/tabs/tab1_", Sys.Date(), ".xlsx"),
+rowNames = FALSE
 )
 
-## add footnote about disp income
+# footnotes
+tab1 <- tab1 %>%
+  mutate(
+    footnote1 = if_else(str_detect(var, "^shf_"), footnote_marker_symbol(1), ""),
+    footnote2 = if_else(str_detect(var, "^sos_"), footnote_marker_symbol(2), ""),
+    footnote3 = if_else(str_detect(var, "^scb_"), footnote_marker_symbol(3), ""),
+    footnote4 = if_else(str_detect(var, paste0("^(", paste0(modvars1, collapse = "|"), ")")), 
+                        footnote_marker_symbol(4), ""),
+    footnote5 = if_else(str_detect(var, paste0("^(", paste0(modvars2, collapse = "|"), ")")), 
+                        footnote_marker_symbol(5), ""),
+    footnote6 = if_else(str_detect(var, "^shf_rasarni"), footnote_marker_symbol(6), ""),
+    footnote7 = if_else(str_detect(var, "^scb_dispincome_cat"), footnote_marker_symbol(7), "")
+  ) %>%
+  unite(footnote, starts_with("footnote"), sep = "") %>%
+  mutate(
+    # so no probs
+    Variable = sanitize_text(Variable),
 
-tab1out$var <- ifelse(stri_extract_first_words(tab1out$tmp_varsforfoot) == "scb_dispincome_cat2",
-  paste0(tab1out$var, footnote_marker_symbol(2)), tab1out$var
-)
+    Variable = paste0(Variable, footnote),
 
-## add footnote about modvars
+    # space in Latex output (fix this other way?)
+    Variable = sub("  ", ". ", Variable)
+  ) %>%
+  select(Variable, No.Case..40.:Yes.Control...40.)
 
-tab1out$var <- ifelse(stri_extract_first_words(tab1out$tmp_varsforfoot) %in% modvars1,
-  paste0(tab1out$var, footnote_marker_symbol(3)), tab1out$var
-)
-
-tab1out$var <- ifelse(stri_extract_first_words(tab1out$tmp_varsforfoot) %in% modvars2,
-  paste0(tab1out$var, footnote_marker_symbol(4)), tab1out$var
-)
-
-tab1out <- tab1out %>% select(-tmp_varsforfoot)
-
-# remove NA
-tab1out <- tab1out %>%
-  mutate(across(everything(), str_replace_all, fixed("NA [NA, NA]"), "-")) %>%
-  mutate(across(everything(), str_replace_all, fixed("0 (NaN)"), "-")) 
-
-## white space removed in kable function.
-## fix in order to use escape = TRUE
-colnames(tab1out) <- sanitize_text(c(
-  "Variables", rep(c("No RA", "RA"), 4))
-)
-
-write.xlsx(tab1out, paste0("./output/tabs/tab1_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+colnames(tab1) <- sanitize_text(c(
+  "Variable", rep(c("No RA", "RA"), 4)
+))
 
 myHeader <- c(" " = 1, "<40%" = 4, "=>40%" = 4)
 names(myHeader) <- c(" ", "<40%", "=>40%")
@@ -72,7 +87,7 @@ myHeader2 <- c(" " = 1, "Case" = 2, "Control" = 2, "Case" = 2, "Control" = 2)
 names(myHeader2) <- c(" ", "Case", "Control", "Case", "Control")
 
 footnote(
-  mykable(tab1out,
+  mykable(tab1,
     fontsize = 4,
     caption = "Baseline characteristics",
     longtable = TRUE,
@@ -82,14 +97,16 @@ footnote(
     add_header_above(myHeader2) %>%
     add_header_above(myHeader),
   general = c(
-    "Categorical variables are presented with n (%) and tested with chi-square test and continuous variables with median [q1-q3] and tested with Kruskal-Wallis test AT SOME POINT.....",
-    "Variables with prefix shf_ are from the SwedeHF, sos_ fom NPR." 
+    "Categorical variables are presented with n (%) and tested with chi-square test and continuous variables with median [q1-q3] and tested with Kruskal-Wallis test AT SOME POINT....."
   ),
   symbol = c(
-    "arb/acei/arni",
-    "Medium within index year",
+    "Source: SwedeHF",
+    "Source: Socialstyrelsen",
+    "Source: SCB",
     "Variables included in Adj models age, sex, comorbs",
-    "Variables included in Adj models age, sex, comorbs, socioec"
+    "Variables included in Adj models age, sex, comorbs, socioec",
+    "arb/acei/arni",
+    "Medium within index year"
   )
 )
 ```
