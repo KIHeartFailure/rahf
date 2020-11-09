@@ -16,7 +16,7 @@ pdata <- pdata %>%
 flow <- rbind(flow, c("First post/patient", nrow(pdata)))
 
 pdata <- pdata %>%
-  filter(sos_durationhf == 0)
+  filter(sos_durationhfforra <= 14 | is.na(sos_durationhfforra))
 flow <- rbind(flow, c("No history (from 1987, in or out-patient, all positions) of HF in NPR", nrow(pdata)))
 
 pdata <- pdata %>%

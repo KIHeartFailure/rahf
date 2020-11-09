@@ -15,7 +15,7 @@ kmfunc <- function(time, event, eventname, yposplus = rep(0, 4)) {
   # c(bottom, left, top, right)
   par(mar = c(4, 6, 1, 11) + 0.1)
   plots <- plot(fit,
-    fun = "cumhaz",
+    fun = "event",
     ylab = eventname,
     xscale = 30.5,
     yscale = 100,
@@ -35,7 +35,6 @@ kmfunc <- function(time, event, eventname, yposplus = rep(0, 4)) {
   axis(1, at = seq(0, 5, 1) * 365, seq(0, 5, 1))
 
   ypos <- 1 - summary(fit, 5 * 365)$surv
-
   ytext <- paste0(rep(levels(pdata$shf_ef_cat2), each = 2), "/", rep(c("No RA", "RA"), 2))
 
   ylabs <- bind_cols(ypos = ypos, ytext = ytext) %>%
@@ -53,23 +52,23 @@ kmfunc <- function(time, event, eventname, yposplus = rep(0, 4)) {
 }
 ```
 
-```{r chcvdeathhfstrokemihosp, fig.cap="Cumulative hazard CVD/First HF/stroke/MI hospitalization", cache=cacheon, dependson="km"}
+```{r kmcvdeathhfstrokemihosp, fig.cap="1-KM CVD/First HF/stroke/MI hospitalization", cache=cacheon, dependson="km"}
 kmfunc(
-  time = "sos_outtime_deathcvhosphfstrokemi", event = "sos_out_deathcvhosphfstrokemi", eventname = "CVD/First HF/stroke/MI hospitalization (%)",
-  yposplus = c(0.05, 0.07, 0.07, 0.11)
+  time = "sos_outtime_deathcvhosphfstrokemi", event = "sos_out_deathcvhosphfstrokemi", 
+  eventname = "CVD/First HF/stroke/MI hospitalization (%)",
+  yposplus = c(0, 0, 0.01, 0)
 )
 ```
 
-```{r chhfhosp, fig.cap="Cumulative hazard First HF hospitalization", cache=cacheon, dependson="km"}
+```{r kmhfhosp, fig.cap="1-KM First HF hospitalization", cache=cacheon, dependson="km"}
 kmfunc(
-  time = "sos_outtime_hosphf", event = "sos_out_hosphf", eventname = "First HF hospitalization (%)",
-  yposplus = c(0.01, 0.02, 0.025, 0.05)
+  time = "sos_outtime_hosphf", event = "sos_out_hosphf", eventname = "First HF hospitalization (%)"
 )
 ```
 
-```{r chdeath, fig.cap="Cumulative hazard Death", cache=cacheon, dependson="km"}
+```{r kmdeath, fig.cap="1-KM Death", cache=cacheon, dependson="km"}
 kmfunc(
   time = "sos_outtime_death", event = "sos_out_death", eventname = "Death (%)",
-  yposplus = c(0.02, 0.03, 0.05, 0.09)
+  yposplus = c(0, -0.01, 0, 0.02)
 )
 ```

@@ -147,7 +147,7 @@ The following outcomes are considered:
 - All-cause mortality
 
 Incidence per 1000 py is calculated with 95% Poisson confidence intervals. 
-The outcomes are presented with cumulative hazard curves. 
+The outcomes are presented with 1-KM curves. 
 Cox proportional hazards regressions are used to evaluate the association 
 between prior RA and the respective outcomes. The interaction between 
 prior RA and EF is included in the model and adjustment performed on variables that are present at the 
