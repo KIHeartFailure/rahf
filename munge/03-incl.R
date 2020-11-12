@@ -23,10 +23,6 @@ pdata <- pdata %>%
   filter(shf_durationhf == "<6mo")
 flow <- rbind(flow, c("Duration of HF < 6 mo in SwedeHF", nrow(pdata)))
 
-#pdata <- pdata %>%
-#  filter(shf_indexdtm >= ymd("2006-07-01"))
-#flow <- rbind(flow, c("Indexdate >= 1 July 2006 (start DDR 1 July 2005 + 1 year)", nrow(pdata)))
-
 pdata <- pdata %>%
   filter(shf_indexdtm >= ymd("2003-01-01"))
 flow <- rbind(flow, c("Indexdate >= 1 Jan 2003 (start NPR out-pat 2001 + 2 years)", nrow(pdata)))

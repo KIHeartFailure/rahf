@@ -1,5 +1,5 @@
 ---
-title: 'SAP/Statistical report: Differences in HF phenotype between incident HF patients with and without prior RA'
+title: 'Statistical report: Differences in HF phenotype between incident HF patients with and without prior RA'
 subtitle: 'DRAFT'
 author: 'Statistician: Lina Benson'
   
@@ -61,9 +61,9 @@ mykable(flow, caption = "Flowchart")
 mykable(ncontrols, caption = "Number of controls / case", scale_down = F)
 ```
 
-First patient in: `r min(pdata$shf_indexdtm)` and last patient in: `r max(pdata$shf_indexdtm)`.  
+A period of 14 days is allowed between first registration in NPR and registration in SwedeHF.
 
-Johan: If start at 2003-01-01 give pats 2 years to find possible ra diagnosis in NPR. Is this vettigt? Will pats have at least two visits to internal/reuma in 2 years? 
+First patient in: `r min(pdata$shf_indexdtm)` and last patient in: `r max(pdata$shf_indexdtm)`.  
 
 ## HF/EF
 
@@ -84,6 +84,10 @@ should be at an internal medicin/reumatological ward (MVO 101, 131).
 The onset of RA diagnosis is then defined to the second visit. If a visit with 
 HDIA M073, L405, M45, M46, M32 occurs prior to the second visit this patient 
 is not defined as a RA. 
+
+### Blankning
+
+No blanking is applied in the main analysis. As a sensitivity analysis a blanking period of 6 months is applied. 
 
 ## Variables created specifically for this project
 
@@ -107,15 +111,11 @@ comparisons were made and therefore the results should be viewed with some care.
 
 ## Association between incident HF and prior RA
 
-The association between incident HF and prior RA is investigated: 
-
-1) Using a conditional logistic regression where the outcome is if a person 
+The association between incident HF and prior RA is investigated 
+using a conditional logistic regression where the outcome is if a person 
 is a HF case or a control. The matched "pairs" are included as a strata variable and 
 EF and RA as main effects and with an interaction term. 
 In this analysis both cases and controls are included. 
-
-2) Using a logistic regression with EF as outcome. In this analysis only cases are included. 
-For the outcome with r/mr/pEF multinominal regression is used. 
 
 Adjustment is performed for variables that are present at the 
 time of the incident HF, and for the controls, the matched case's time. 
@@ -128,10 +128,6 @@ and partly `r paste0(modvars2, collapse = ", ")`.
 \newpage
 
 ```{r, child = "../src/cortab.Rmd"}
-
-```
-
-```{r, child = "../src/mortab.Rmd"}
 
 ```
 

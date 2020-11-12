@@ -48,7 +48,6 @@ tabvars <- c(
   "sos_com_liver",
   "sos_com_cancer3y",
   "sos_com_copd",
-  "sos_com_renal",
 
   # socec
   "scb_famtype",
@@ -63,7 +62,8 @@ modvars1 <- c(
   "sos_com_diabetes",
   "sos_com_hypertension",
   "sos_com_ihd",
-  "sos_com_af"
+  "sos_com_af",
+  "sos_com_renal"
 )
 modvars2 <- c(
   modvars1,

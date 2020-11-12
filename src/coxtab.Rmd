@@ -1,6 +1,6 @@
 ```{r coxtab2, cache=cacheon}
 
-survmy <- function(time, event, eventname) {
+survmy <- function(time, event, eventname, ravar = "sos_com_ra") {
   survdata <- pdata %>% filter(casecontrol == "Case")
 
   levsef <- levels(pdata$shf_ef_cat2)
@@ -11,7 +11,7 @@ survmy <- function(time, event, eventname) {
 
   colnames(out) <- c(
     "Outcome", "Model",
-    paste(rep(levsef, 2), rep(levels(pdata$sos_com_ra), 2), " RA"),
+    paste(rep(levsef, 2), rep(levels(pdata %>% pull(!!sym(ravar))), 2), " RA"),
     "Interaction p"
   )
 
@@ -23,8 +23,8 @@ survmy <- function(time, event, eventname) {
       mutate(eventcount = if_else(!!sym(event) == "Yes", 1, 0)) %>%
       filter(shf_ef_cat2 == levsef[i])
 
-    ev <- by(survdata2[, "eventcount"], survdata2[, "sos_com_ra"], sum)
-    s <- by(survdata2[, time], survdata2[, "sos_com_ra"], sum) / 365.25
+    ev <- by(survdata2[, "eventcount"], survdata2[, ravar], sum)
+    s <- by(survdata2[, time], survdata2[, ravar], sum) / 365.25
     r <- pois.exact(x = ev, pt = s / 1000)
 
     out[1, (1 + (i * 2)):(2 + (i * 2))] <- paste0(
@@ -38,7 +38,7 @@ survmy <- function(time, event, eventname) {
     # cox regressions
     ## crude
     mod <- coxph(formula(paste0(
-      "Surv(", time, ",", event, "=='Yes') ~ sos_com_ra * relevel(shf_ef_cat2, ref = '", levsef[i], "')"
+      "Surv(", time, ",", event, "=='Yes') ~ ", ravar, " * relevel(shf_ef_cat2, ref = '", levsef[i], "')"
     )),
     data = survdata
     )
@@ -59,7 +59,7 @@ survmy <- function(time, event, eventname) {
 
     ## adj comorbs
     mod <- coxph(formula(paste0(
-      "Surv(", time, ",", event, "=='Yes') ~ sos_com_ra * relevel(shf_ef_cat2, ref = '", levsef[i], "') + ",
+      "Surv(", time, ",", event, "=='Yes') ~ ", ravar, " * relevel(shf_ef_cat2, ref = '", levsef[i], "') + ",
       paste(modvars1, collapse = " + ")
     )),
     data = survdata
@@ -82,7 +82,7 @@ survmy <- function(time, event, eventname) {
 
     ## adj comorbs + socioec
     mod <- coxph(formula(paste0(
-      "Surv(", time, ",", event, "=='Yes') ~ sos_com_ra * relevel(shf_ef_cat2, ref = '", levsef[i], "') + ",
+      "Surv(", time, ",", event, "=='Yes') ~ ", ravar, " * relevel(shf_ef_cat2, ref = '", levsef[i], "') + ",
       paste(modvars2, collapse = " + ")
     )),
     data = survdata
@@ -111,7 +111,8 @@ survmy <- function(time, event, eventname) {
 cvdhosp <- survmy(
   time = "sos_outtime_deathcvhosphfstrokemi",
   event = "sos_out_deathcvhosphfstrokemi",
-  eventname = "CVD/First HF/stroke/MI hospitalization (%)"
+  eventname = "CVD/First HF/stroke/MI hospitalization (%)",
+  ravar = "sos_com_ra"
 )
 
 hfhosp <- survmy(
@@ -141,6 +142,52 @@ names(myHeader) <- c(" ", " ", "<40%", ">=40%", " ")
 footnote(mykable(coxoutall,
   fontsize = 10,
   caption = sanitize_text("Associations between outcomes and prior RA by EF </>=40%")
+) %>%
+  landscape() %>%
+  add_header_above(myHeader),
+symbol = c(
+  "Incidence = no events, sum py, rate/1000py (95% CI)."
+)
+)
+```
+
+```{r coxtabout2blanksens, cache=cacheon, dependson="coxtab2"}
+cvdhosp <- survmy(
+  time = "sos_outtime_deathcvhosphfstrokemi",
+  event = "sos_out_deathcvhosphfstrokemi",
+  eventname = "CVD/First HF/stroke/MI hospitalization (%)",
+  ravar = "sos_com_ra_blank6mo"
+)
+
+hfhosp <- survmy(
+  time = "sos_outtime_hosphf",
+  event = "sos_out_hosphf",
+  eventname = "First HF hospitalization (%)",
+  ravar = "sos_com_ra_blank6mo"
+)
+
+death <- survmy(
+  time = "sos_outtime_death",
+  event = "sos_out_death",
+  eventname = "Death (%)",
+  ravar = "sos_com_ra_blank6mo"
+)
+
+coxoutall <- bind_rows(cvdhosp, hfhosp, death)
+colnames(coxoutall) <- c(
+  "Outcome", "Model",
+  rep(c("No RA", "RA"), 2),
+  "Interaction p"
+)
+
+write.xlsx(coxoutall, paste0("./output/tabs/coxtab2_blank6mo_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+
+myHeader <- c(" " = 1, " " = 1, "<40%" = 2, ">=40%" = 2, " " = 1)
+names(myHeader) <- c(" ", " ", "<40%", ">=40%", " ")
+
+footnote(mykable(coxoutall,
+  fontsize = 10,
+  caption = sanitize_text("Associations between outcomes and prior RA with blanking 6 mo by EF </>=40%")
 ) %>%
   landscape() %>%
   add_header_above(myHeader),

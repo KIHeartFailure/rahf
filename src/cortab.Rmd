@@ -70,6 +70,79 @@ symbol = c(
 )
 ```
 
+```{r cortab2snesblank, cache=cacheon}
+
+levsef <- levels(pdata$shf_ef_cat2)
+
+out <- data.frame(matrix(NA, ncol = 3, nrow = 3))
+
+colnames(out) <- c(
+  "Model",
+  levsef
+)
+
+for (i in seq_along(levsef)) {
+
+  ## crude
+  mod <- summary(clogit(casecontrol == "Case" ~ sos_com_ra_blank6mo *
+    relevel(shf_ef_cat2, ref = levsef[i]) + strata(LopNrcase),
+  data = pdata
+  ))
+
+  out[1, 1] <- "Crude OR (95% CI), p"
+  out[1, (1 + i)] <- c(
+    paste0(
+      dF(mod$conf.int[1, 1], 1), " (", dF(mod$conf.int[1, 3], 1), "-",
+      dF(mod$conf.int[1, 4], 1), "), ", dF(mod$coefficients[1, 5], dig = 3, p = T)
+    )
+  )
+
+  ## adj comorbs
+  mod <- summary(clogit(formula(paste0(
+    "casecontrol == 'Case' ~ sos_com_ra_blank6mo * relevel(shf_ef_cat2, ref = '",
+    levsef[i], "') + ",
+    paste(modvars1, collapse = " + "), " + strata(LopNrcase)"
+  )),
+  data = pdata
+  ))
+
+  out[2, 1] <- "Adj comorbs OR (95% CI), p"
+  out[2, (1 + i)] <- c(
+    paste0(
+      dF(mod$conf.int[1, 1], 1), " (", dF(mod$conf.int[1, 3], 1), "-",
+      dF(mod$conf.int[1, 4], 1), "), ", dF(mod$coefficients[1, 5], dig = 3, p = T)
+    )
+  )
+
+
+  ## adj comorbs + socioec
+  mod <- summary(clogit(formula(paste0(
+    "casecontrol == 'Case' ~ sos_com_ra_blank6mo * relevel(shf_ef_cat2, ref = '",
+    levsef[i], "') + ",
+    paste(modvars2, collapse = " + "), " + strata(LopNrcase)"
+  )),
+  data = pdata
+  ))
+
+  out[3, 1] <- "Adj comorbs, socec OR (95% CI), p"
+  out[3, (1 + i)] <- c(
+    paste0(
+      dF(mod$conf.int[1, 1], 1), " (", dF(mod$conf.int[1, 3], 1), "-",
+      dF(mod$conf.int[1, 4], 1), "), ", dF(mod$coefficients[1, 5], dig = 3, p = T)
+    )
+  )
+}
+
+footnote(mykable(out,
+  caption = sanitize_text("Associations between incident HF compared to controls and prior RA with blanking 6 mo by EF </>=40%")
+),
+symbol = c(
+  "All analyses adjusted for age, sex and county of residence through matching"
+)
+)
+```
+
+
 ```{r cortab, cache=cacheon}
 
 levsef <- levels(pdata$shf_ef_cat)

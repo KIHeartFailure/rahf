@@ -51,5 +51,7 @@ rafinal <- left_join(ramvo3 %>%
 pdata <- left_join(pdata, 
                    rafinal,
                    by = "LopNr") %>%
-  mutate(sos_com_ra = case_when(sos_ra == "Yes" & sos_radtm <= shf_indexdtm - 3 * 30 ~ "Yes",
-                             TRUE ~ "No"))
+  mutate(sos_com_ra_blank6mo = case_when(sos_ra == "Yes" & sos_radtm <= shf_indexdtm - 6 * 30 ~ "Yes",
+                             TRUE ~ "No"),
+         sos_com_ra = case_when(sos_ra == "Yes" & sos_radtm <= shf_indexdtm ~ "Yes",
+                                TRUE ~ "No"))
