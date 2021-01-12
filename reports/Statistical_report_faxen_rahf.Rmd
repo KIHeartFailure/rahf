@@ -52,7 +52,7 @@ cacheon <- TRUE
 
 ## Data source
 
-SHFDB3, https://kiheartfailure.github.io/shfdb3/, v 3.1.5. 
+SHFDB3, https://kiheartfailure.github.io/shfdb3/, v 3.1.7. 
 
 ## Inclusion/exclusion criteria
 
@@ -72,6 +72,11 @@ aim to discuss directionality.
 
 EF is recorded in SwedeHF. The primary analysis will be on EF </=> 40% due to the small number of patients 
 with previous RA. Analyses EF <30% (rEF), 40-49% (mrEF) and =>50% (pEF) will also be presented.  
+
+## In/out-patients
+
+The main analysis will be on patients (and their controls) recorded as out-patients in SwedeHF. 
+In-patients will be presented separately. 
 
 ## Controls for HF
 
@@ -109,6 +114,8 @@ comparisons were made and therefore the results should be viewed with some care.
 
 ```
 
+Vill ni ha tester här? Mellan vad? Ska ra vara med i tabell? 
+
 ## Association between incident HF and prior RA
 
 The association between incident HF and prior RA is investigated 
@@ -124,12 +131,18 @@ Adjustment is partly performed for `r paste0(modvars1, collapse = ", ")`
 
 and partly `r paste0(modvars2, collapse = ", ")`.
 
+Number of available observations for each group: 
+`r mykable(pdata %>% count(shf_location, casecontrol, sos_com_ra, shf_ef_cat), scale_down = FALSE)` 
+
 \clearpage
 \newpage
 
 ```{r, child = "../src/cortab.Rmd"}
 
 ```
+
+\clearpage
+\newpage
 
 ## Outcomes after HF
 

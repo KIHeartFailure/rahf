@@ -2,7 +2,7 @@
 
 # Inclusion/exclusion criteria --------------------------------------------------------
 
-pdata <- rsdata315 %>%
+pdata <- rsdata317 %>%
   filter(casecontrol == "Case")
 
 flow <- c("Number of posts (cases) in SHFDB3", nrow(pdata))
@@ -16,7 +16,7 @@ pdata <- pdata %>%
 flow <- rbind(flow, c("First post/patient", nrow(pdata)))
 
 pdata <- pdata %>%
-  filter(sos_durationhfforra <= 14 | is.na(sos_durationhfforra))
+  filter(sos_durationhf <= 14 | is.na(sos_durationhf))
 flow <- rbind(flow, c("No history (from 1987, in or out-patient, all positions) of HF in NPR", nrow(pdata)))
 
 pdata <- pdata %>%
@@ -36,16 +36,19 @@ pdata <- pdata %>%
 
 flow <- rbind(flow, c(">= 1 control", nrow(pdata)))
 
+flow <- rbind(flow, c("  wherof out-patients", nrow(pdata %>% filter(shf_location == "Out-patient"))))
+flow <- rbind(flow, c("  wherof in-patients", nrow(pdata %>% filter(shf_location == "In-patient"))))
+
 colnames(flow) <- c("Criteria", "N")
 
 
 # Add controls ------------------------------------------------------------
 
 pdatacontrols <- inner_join(pdata %>%
-  select(LopNr, shf_ef, shf_indexdtm),
-rsdata315 %>%
+  select(LopNr, shf_ef, shf_indexdtm, shf_location),
+rsdata317 %>%
   filter(casecontrol == "Control") %>%
-  select(-shf_ef),
+  select(-shf_ef, -shf_location),
 by = c("LopNr" = "LopNrcase", "shf_indexdtm")
 ) %>%
   rename(LopNr = LopNr.y, 
@@ -57,6 +60,6 @@ pdata <- bind_rows(pdata,
 
 ncontrols <- pdata %>% 
   filter(casecontrol == "Case") %>%
-    count(ncontrols)
+    count(shf_location, ncontrols) 
 
-names(ncontrols) <- c("No controls", "No cases")
+names(ncontrols) <- c("Location", "No controls", "No cases")

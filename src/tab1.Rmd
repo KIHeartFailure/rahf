@@ -1,110 +1,120 @@
 ```{r tab1, cache=cacheon}
 
-tab1 <- print(
-  CreateTableOne(
-    vars = tabvars,
-    strata = c("sos_com_ra", "casecontrol", "shf_ef_cat2"),
-    data = pdata
-  ),
-  missing = FALSE,
-  printToggle = FALSE,
-  nonnormal = tabvars,
-  test = FALSE,
-  catDigits = 1,
-  contDigits = 1,
-  explain = FALSE,
-  noSpaces = TRUE
-)
-
-tab1 <- data.frame(tab1) %>%
-  rownames_to_column(var = "var") %>%
-  # remove NA
-  mutate(across(everything(), str_replace_all, fixed("NA [NA, NA]"), "-")) %>%
-  mutate(across(everything(), str_replace_all, fixed("0 (NaN)"), "-")) %>%
-  # remove = Yes
-  mutate(across(everything(), str_replace_all, fixed(" = Yes"), "")) %>%
-  mutate(
-    var_tmp = str_split(var, " = ", simplify = TRUE)[, 1],
-    val_tmp = str_split(var, " = ", simplify = TRUE)[, 2]
+tab1func <- function(data, title) {
+  tab1 <- print(
+    CreateTableOne(
+      vars = tabvars,
+      strata = c("sos_com_ra", "casecontrol", "shf_ef_cat2"),
+      data = data
+    ),
+    missing = FALSE,
+    printToggle = FALSE,
+    nonnormal = tabvars,
+    test = FALSE,
+    catDigits = 1,
+    contDigits = 1,
+    explain = FALSE,
+    noSpaces = TRUE
   )
 
-tab1 <- left_join(tab1,
-  meta.variables.Sheet.1 %>%
-    select(variable, label, unit),
-  by = c("var_tmp" = "variable")
-) %>%
-  mutate(
-    Variable = coalesce(label, var_tmp),
-    Variable = if_else(!is.na(unit),
-      paste0(Variable, " (", unit, ")"),
-      Variable
+  tab1 <- data.frame(tab1) %>%
+    rownames_to_column(var = "var") %>%
+    # remove NA
+    mutate(across(everything(), str_replace_all, fixed("NA [NA, NA]"), "-")) %>%
+    mutate(across(everything(), str_replace_all, fixed("0 (NaN)"), "-")) %>%
+    # remove = Yes
+    mutate(across(everything(), str_replace_all, fixed(" = Yes"), "")) %>%
+    mutate(
+      var_tmp = str_split(var, " = ", simplify = TRUE)[, 1],
+      val_tmp = str_split(var, " = ", simplify = TRUE)[, 2]
+    )
+
+  tab1 <- left_join(tab1,
+    meta.variables.Sheet.1 %>%
+      select(variable, label, unit),
+    by = c("var_tmp" = "variable")
+  ) %>%
+    mutate(
+      Variable = coalesce(label, var_tmp),
+      Variable = if_else(!is.na(unit),
+        paste0(Variable, " (", unit, ")"),
+        Variable
+      ),
+      Variable = if_else(val_tmp != "",
+        paste0(Variable, " ", val_tmp),
+        Variable
+      )
+    )
+
+  write.xlsx(tab1 %>%
+    select(Variable, No.Case..40.:Yes.Control...40.),
+  paste0("./output/tabs/tab1_", title, "_", Sys.Date(), ".xlsx"),
+  rowNames = FALSE
+  )
+
+  # footnotes
+  tab1 <- tab1 %>%
+    mutate(
+      footnote1 = if_else(str_detect(var, "^shf_"), footnote_marker_symbol(1), ""),
+      footnote2 = if_else(str_detect(var, "^sos_"), footnote_marker_symbol(2), ""),
+      footnote3 = if_else(str_detect(var, "^scb_"), footnote_marker_symbol(3), ""),
+      footnote4 = if_else(var_tmp %in% modvars1, footnote_marker_symbol(4), ""),
+      footnote5 = if_else(var_tmp %in% modvars2, footnote_marker_symbol(5), ""),
+      footnote6 = if_else(str_detect(var, "^shf_rasarni"), footnote_marker_symbol(6), ""),
+      footnote7 = if_else(str_detect(var, "^scb_dispincome_cat"), footnote_marker_symbol(7), "")
+    ) %>%
+    unite(footnote, starts_with("footnote"), sep = "") %>%
+    mutate(
+      # so no probs
+      Variable = sanitize_text(Variable),
+
+      Variable = paste0(Variable, footnote),
+
+      # space in Latex output (fix this other way?)
+      Variable = sub("  ", ". ", Variable)
+    ) %>%
+    select(Variable, No.Case..40.:Yes.Control...40.)
+
+  colnames(tab1) <- sanitize_text(c(
+    "Variable", rep(c("No RA", "RA"), 4)
+  ))
+
+  myHeader <- c(" " = 1, "<40%" = 4, "=>40%" = 4)
+  names(myHeader) <- c(" ", "<40%", "=>40%")
+
+  myHeader2 <- c(" " = 1, "Case" = 2, "Control" = 2, "Case" = 2, "Control" = 2)
+  names(myHeader2) <- c(" ", "Case", "Control", "Case", "Control")
+
+  footnote(
+    mykable(tab1,
+      fontsize = 4,
+      caption = paste0("Baseline characteristics - ", title),
+      longtable = TRUE,
+      escape = FALSE
+    ) %>%
+      landscape() %>%
+      add_header_above(myHeader2) %>%
+      add_header_above(myHeader),
+    general = c(
+      "Categorical variables are presented with n (%) and tested with chi-square test and continuous variables with median [q1-q3] and tested with Kruskal-Wallis test AT SOME POINT....."
     ),
-    Variable = if_else(val_tmp != "",
-      paste0(Variable, " ", val_tmp),
-      Variable
+    symbol = c(
+      "Source: SwedeHF",
+      "Source: Socialstyrelsen",
+      "Source: SCB",
+      "Variables included in Adj models age, sex, comorbs",
+      "Variables included in Adj models age, sex, comorbs, socioec",
+      "arb/acei/arni",
+      "Medium within index year"
     )
   )
+}
+```
 
-write.xlsx(tab1 %>%
-  select(Variable, No.Case..40.:Yes.Control...40.),
-paste0("./output/tabs/tab1_", Sys.Date(), ".xlsx"),
-rowNames = FALSE
-)
+```{r tab1out, cache=cacheon, dependson="tab1"}
+tab1func(data = pdata %>% filter(shf_location == "Out-patient"), title = "Out-patients")
+```
 
-# footnotes
-tab1 <- tab1 %>%
-  mutate(
-    footnote1 = if_else(str_detect(var, "^shf_"), footnote_marker_symbol(1), ""),
-    footnote2 = if_else(str_detect(var, "^sos_"), footnote_marker_symbol(2), ""),
-    footnote3 = if_else(str_detect(var, "^scb_"), footnote_marker_symbol(3), ""),
-    footnote4 = if_else(var_tmp %in% modvars1, footnote_marker_symbol(4), ""),
-    footnote5 = if_else(var_tmp %in% modvars2, footnote_marker_symbol(5), ""),
-    footnote6 = if_else(str_detect(var, "^shf_rasarni"), footnote_marker_symbol(6), ""),
-    footnote7 = if_else(str_detect(var, "^scb_dispincome_cat"), footnote_marker_symbol(7), "")
-  ) %>%
-  unite(footnote, starts_with("footnote"), sep = "") %>%
-  mutate(
-    # so no probs
-    Variable = sanitize_text(Variable),
-
-    Variable = paste0(Variable, footnote),
-
-    # space in Latex output (fix this other way?)
-    Variable = sub("  ", ". ", Variable)
-  ) %>%
-  select(Variable, No.Case..40.:Yes.Control...40.)
-
-colnames(tab1) <- sanitize_text(c(
-  "Variable", rep(c("No RA", "RA"), 4)
-))
-
-myHeader <- c(" " = 1, "<40%" = 4, "=>40%" = 4)
-names(myHeader) <- c(" ", "<40%", "=>40%")
-
-myHeader2 <- c(" " = 1, "Case" = 2, "Control" = 2, "Case" = 2, "Control" = 2)
-names(myHeader2) <- c(" ", "Case", "Control", "Case", "Control")
-
-footnote(
-  mykable(tab1,
-    fontsize = 4,
-    caption = "Baseline characteristics",
-    longtable = TRUE,
-    escape = FALSE
-  ) %>%
-    landscape() %>%
-    add_header_above(myHeader2) %>%
-    add_header_above(myHeader),
-  general = c(
-    "Categorical variables are presented with n (%) and tested with chi-square test and continuous variables with median [q1-q3] and tested with Kruskal-Wallis test AT SOME POINT....."
-  ),
-  symbol = c(
-    "Source: SwedeHF",
-    "Source: Socialstyrelsen",
-    "Source: SCB",
-    "Variables included in Adj models age, sex, comorbs",
-    "Variables included in Adj models age, sex, comorbs, socioec",
-    "arb/acei/arni",
-    "Medium within index year"
-  )
-)
+```{r tab1in, cache=cacheon, dependson="tab1"}
+tab1func(data = pdata %>% filter(shf_location == "In-patient"), title = "In-patients")
 ```

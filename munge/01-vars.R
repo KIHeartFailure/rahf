@@ -23,7 +23,7 @@ tabvars <- c(
   "shf_gfrckdepi",
   "shf_potassium",
   "shf_hb",
-  "shf_ntpropbnp",
+  "shf_ntprobnp",
 
   # treatments
   "shf_rasarni",
@@ -57,8 +57,8 @@ tabvars <- c(
 )
 
 modvars1 <- c(
-  "shf_sex",
-  "shf_age",
+  #"shf_sex",
+  #"shf_age",
   "sos_com_diabetes",
   "sos_com_hypertension",
   "sos_com_ihd",
