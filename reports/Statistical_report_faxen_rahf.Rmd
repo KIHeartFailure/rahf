@@ -1,6 +1,5 @@
 ---
-title: 'Statistical report: Differences in HF phenotype between incident HF patients with and without prior RA'
-subtitle: 'DRAFT'
+title: 'Statistical report: Association Between Rheumatoid Arthritis and Ejection Fraction in Incident Heart Failure'
 author: 'Statistician: Lina Benson'
   
 date: "`r Sys.Date()`"
@@ -13,11 +12,11 @@ output:
 link-citations: yes
 bibliography: references.bib
 nocite: '@*'
-header-includes:
-   - \usepackage{draftwatermark}
 ---
 
+\clearpage
 \newpage 
+
 \tableofcontents 
 \listoftables
 \listoffigures
@@ -52,19 +51,29 @@ cacheon <- TRUE
 
 ## Data source
 
-SHFDB3, https://kiheartfailure.github.io/shfdb3/, v 3.1.7. 
+SHFDB3, https://kiheartfailure.github.io/shfdb3/, v 3.2.2. 
 
 ## Inclusion/exclusion criteria
 
 ```{r flow}
-mykable(flow, caption = "Flowchart")
-mykable(ncontrols, caption = "Number of controls / case", scale_down = F)
+footnote(
+  default_kable(flow, caption = "Flowchart"),
+  symbol = "A period of 14 days is allowed between first registration in NPR and registration in SwedeHF."
+)
 ```
-
-A period of 14 days is allowed between first registration in NPR and registration in SwedeHF.
 
 First patient in: `r min(pdata$shf_indexdtm)` and last patient in: `r max(pdata$shf_indexdtm)`.  
 
+The median age (IQR) is `r pdata %>% summarise(med = fn(median(shf_age), dig = 1),
+                                             q1 = fn(quantile(shf_age, probs = 0.25), dig = 1),
+                                             q3 = fn(quantile(shf_age, probs = 0.75), dig = 1)) %>%
+                                   mutate(out = paste0(med, " (", q1, "-", q3, ")")) %>%
+                                   pull(out)` and 
+`r pdata %>% count(shf_sex) %>%
+  mutate(perc = fn(n / sum(n) * 100, 1)) %>%
+  filter(shf_sex == "Female") %>%
+  pull(perc)`% females.    
+  
 ## HF/EF
 
 By excluding cases with previous diagnosis of HF in NPR/SwedeHF the aim is to keep only incident HF cases and thereby
@@ -73,32 +82,21 @@ aim to discuss directionality.
 EF is recorded in SwedeHF. The primary analysis will be on EF </=> 40% due to the small number of patients 
 with previous RA. Analyses EF <30% (rEF), 40-49% (mrEF) and =>50% (pEF) will also be presented.  
 
-## In/out-patients
-
-The main analysis will be on patients (and their controls) recorded as out-patients in SwedeHF. 
-In-patients will be presented separately. 
-
-## Controls for HF
-
-Eligible controls were persons without re-used and changed Swedish personal identity numbers (PINs) and free of HF, defined either in the National Patient registry (ICD-10: I110, I130, I132, I255, I420, I423, 1425-9, I43, I50, J81, K761, R57, ICD-9: 414W, 425E-H, 425W, 425X, 428) or SwedeHF, at the end of the year of the index date for the case and matched by gender, year of birth and county of residence at index. For posts with age >= 90 years, controls were only matched by gender and year of birth due to the smaller available number of controls. The selection of controls was performed without replacement.
-
 ## Definition of RA 
 
 Two visits (spec öppenvård) with HDIA M05, M06, where at least on of the visits 
-should be at an internal medicin/reumatological ward (MVO 101, 131). 
+should be at an internal medicine/reumatological ward (MVO 101, 131). 
 The onset of RA diagnosis is then defined to the second visit. If a visit with 
 HDIA M073, L405, M45, M46, M32 occurs prior to the second visit this patient 
 is not defined as a RA. 
 
-### Blankning
-
-No blanking is applied in the main analysis. As a sensitivity analysis a blanking period of 6 months is applied. 
-
 ## Variables created specifically for this project
 
 ```{r sos}
-mykable(metaout, caption = "Additional outcomes from NPR", scale_down = F)
+default_kable(metaout, caption = "Additional outcomes from NPR", scale_down = F)
 ```
+
+\clearpage
 
 # Statistical analysis 
 
@@ -108,36 +106,40 @@ All analyses were performed using `r sessionInfo()$R.version$version.string` [@r
 The level of significance is set to 5%, two-sided. No adjustment for multiple 
 comparisons were made and therefore the results should be viewed with some care.
 
+### Subgroup analysis - In/out-patients
+
+Subgroup analysis will be performed on patients recorded as out- or in-patients in SwedeHF. 
+
+### Consistency analysis - Blankning
+
+No blanking period (time prior to HF diagnosis were diagnosis of RA is not considered) 
+is applied in the main analysis. As a consistency analysis a blanking period of 6 months is applied. 
+
 ## Baseline characteristics
 
 ```{r, child = "../src/tab1.Rmd"}
 
 ```
 
-Vill ni ha tester här? Mellan vad? Ska ra vara med i tabell? 
-
 ## Association between incident HF and prior RA
 
 The association between incident HF and prior RA is investigated 
-using a conditional logistic regression where the outcome is if a person 
-is a HF case or a control. The matched "pairs" are included as a strata variable and 
-EF and RA as main effects and with an interaction term. 
-In this analysis both cases and controls are included. 
+using logistic regression (EF 2 groups) and multinomial regression (EF 3 groups) 
+where the outcome is EF group. 
 
 Adjustment is performed for variables that are present at the 
-time of the incident HF, and for the controls, the matched case's time. 
+time of the incident HF. 
 
 Adjustment is partly performed for `r paste0(modvars1, collapse = ", ")` 
 
 and partly `r paste0(modvars2, collapse = ", ")`.
 
-Number of available observations for each group: 
-`r mykable(pdata %>% count(shf_location, casecontrol, sos_com_ra, shf_ef_cat), scale_down = FALSE)` 
+### Assumptions
 
-\clearpage
-\newpage
+Outliers were investigated with Cook's distance and multicollinearity 
+with the variance inflation factor. => No action deemed necessary. 
 
-```{r, child = "../src/cortab.Rmd"}
+```{r, child = "../src/mortab.Rmd"}
 
 ```
 
@@ -146,7 +148,6 @@ Number of available observations for each group:
 
 ## Outcomes after HF
 
-For this analysis only cases (patients with HF) are selected. 
 The patients with prior RA are compared to those without prior RA. 
 
 The following outcomes are considered: 
@@ -161,7 +162,30 @@ Cox proportional hazards regressions are used to evaluate the association
 between prior RA and the respective outcomes. The interaction between 
 prior RA and EF is included in the model and adjustment performed on variables that are present at the 
 time of the incident HF for the same variables as in the previous models. 
-Data are censored at 2018-12-31 or death/emigration. 
+Data are censored at 2019-12-31, death (for outcomes not including all-cause mortality), emigration from Sweden 
+(=lost to follow-up in the national Swedish registries) or 10 years after index, whichever came first. 
+
+The median (min-max) follow-up is 
+`r pdata %>% summarise(med = fn(median(sos_outtime_death / 365.25 * 12), dig = 1),
+                                             min = fn(min(sos_outtime_death / 365.25 * 12), dig = 1),
+                                             max = fn(max(sos_outtime_death / 365.25 * 12), dig = 1)) %>%
+                                   mutate(out = paste0(med, " (", min, "-", max, ")")) %>%
+                                   pull(out)` months for a total of 
+                                   `r pdata %>% summarise(sumpy = fn(sum(sos_outtime_death) / 365.25, dig = 0)) %>%
+                                   pull(sumpy)` patient-years of follow-up.
+
+
+### Assumptions
+
+The proportional hazards assumption was investigated using the scaled Schoenfeld 
+residuals (cox.zph in [@survival-package]). Signs of non-proportional hazards were 
+shown for EF group, driven mainly by the in-patient population were higher EF 
+initially shows lower hazard but after approximately 2 years the difference 
+between EF starts to decrease. See Figure \ref{fig:nonpropplot}. 
+
+```{r, child = "../src/checkass.Rmd"}
+
+```
 
 \clearpage
 \newpage

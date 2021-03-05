@@ -1,9 +1,7 @@
 ```{r coxtab, cache=cacheon}
 
 survmy <- function(data, time, event, eventname, efvar, ravar = "sos_com_ra") {
-  survdata <- data %>% filter(casecontrol == "Case")
-
-  levsef <- levels(pdata %>% pull(!!sym(efvar)))
+  levsef <- levels(data %>% pull(!!sym(efvar)))
 
   out <- data.frame(matrix(NA, ncol = 3 + length(levsef) * 2, nrow = 4))
 
@@ -18,43 +16,51 @@ survmy <- function(data, time, event, eventname, efvar, ravar = "sos_com_ra") {
   ## incidence rate
   out[1, 2] <- "Incidence*"
 
-  for (i in seq_along(levsef)) {
-    survdata2 <- survdata %>%
-      mutate(eventcount = if_else(!!sym(event) == "Yes", 1, 0)) %>%
-      filter(!!sym(efvar) == levsef[i])
-
-    ev <- by(survdata2[, "eventcount"], survdata2[, ravar], sum)
-    s <- by(survdata2[, time], survdata2[, ravar], sum) / 365.25
-    r <- pois.exact(x = ev, pt = s / 1000)
-
-    out[1, (1 + (i * 2)):(2 + (i * 2))] <- paste0(
-      ev, ", ",
-      dF(s, dig = 0), ", ",
-      dF(r$rate, dig = 1), " (",
-      dF(r$lower, dig = 1), "-",
-      dF(r$upper, dig = 1), ")"
+  ev <- data %>%
+    group_by(!!sym(efvar), !!sym(ravar)) %>%
+    summarise(
+      ev = sum(!!sym(event) == "Yes"),
+      .groups = "drop"
     )
+
+  s <- data %>%
+    group_by(!!sym(efvar), !!sym(ravar)) %>%
+    summarise(
+      s = sum(!!sym(time) / 365.25),
+      .groups = "drop"
+    )
+  r <- pois.exact(x = ev$ev, pt = s$s / 1000)
+
+  out[1, 3:(2 + length(levsef) * 2)] <- paste0(
+    ev$ev, ", ",
+    fn(s$s, dig = 0), ", ",
+    fn(r$rate, dig = 1), " (",
+    fn(r$lower, dig = 1), "-",
+    fn(r$upper, dig = 1), ")"
+  )
+
+  for (i in seq_along(levsef)) {
 
     # cox regressions
     ## crude
     mod <- coxph(formula(paste0(
       "Surv(", time, ",", event, "=='Yes') ~ ", ravar, " * relevel(", efvar, ", ref = '", levsef[i], "')"
     )),
-    data = survdata
+    data = data
     )
     smod <- summary(mod)
     out[2, 2] <- "Crude HR (95% CI), p"
     out[2, (1 + (i * 2)):(2 + (i * 2))] <- c(
       "ref", paste0(
-        dF(smod$conf.int[1, 1], dig = 1),
-        " (", dF(smod$conf.int[1, 3], dig = 1),
-        "-", dF(smod$conf.int[1, 4], dig = 1), "), ",
-        dF(smod$coef[1, 5], dig = 3, p = TRUE)
+        fn(smod$conf.int[1, 1], dig = 1),
+        " (", fn(smod$conf.int[1, 3], dig = 1),
+        "-", fn(smod$conf.int[1, 4], dig = 1), "), ",
+        fn(smod$coef[1, 5], dig = 3, p = TRUE)
       )
     )
 
     if (i == 1) {
-      out[2, 7] <- last(dF(car::Anova(mod, type = 3)$`Pr(>Chisq)`, dig = 3, p = T))
+      out[2, 3 + length(levsef) * 2] <- last(fn(car::Anova(mod, type = 3)$`Pr(>Chisq)`, dig = 3, p = T))
     }
 
     ## adj comorbs
@@ -62,22 +68,22 @@ survmy <- function(data, time, event, eventname, efvar, ravar = "sos_com_ra") {
       "Surv(", time, ",", event, "=='Yes') ~ ", ravar, " * relevel(", efvar, ", ref = '", levsef[i], "') + ",
       paste(modvars1, collapse = " + ")
     )),
-    data = survdata
+    data = data
     )
 
     smod <- summary(mod)
     out[3, 2] <- "Adj age, sex, comorbs HR (95% CI), p"
     out[3, (1 + (i * 2)):(2 + (i * 2))] <- c(
       "ref", paste0(
-        dF(smod$conf.int[1, 1], dig = 1),
-        " (", dF(smod$conf.int[1, 3], dig = 1),
-        "-", dF(smod$conf.int[1, 4], dig = 1), "), ",
-        dF(smod$coef[1, 5], dig = 3, p = TRUE)
+        fn(smod$conf.int[1, 1], dig = 1),
+        " (", fn(smod$conf.int[1, 3], dig = 1),
+        "-", fn(smod$conf.int[1, 4], dig = 1), "), ",
+        fn(smod$coef[1, 5], dig = 3, p = TRUE)
       )
     )
 
     if (i == 1) {
-      out[3, 7] <- last(dF(car::Anova(mod, type = 3)$`Pr(>Chisq)`, dig = 3, p = T))
+      out[3, 3 + length(levsef) * 2] <- last(fn(car::Anova(mod, type = 3)$`Pr(>Chisq)`, dig = 3, p = T))
     }
 
     ## adj comorbs + socioec
@@ -85,324 +91,178 @@ survmy <- function(data, time, event, eventname, efvar, ravar = "sos_com_ra") {
       "Surv(", time, ",", event, "=='Yes') ~ ", ravar, " * relevel(", efvar, ", ref = '", levsef[i], "') + ",
       paste(modvars2, collapse = " + ")
     )),
-    data = survdata
+    data = data
     )
 
     smod <- summary(mod)
     out[4, 2] <- "Adj age, sex, comorbs, socec HR (95% CI), p"
     out[4, (1 + (i * 2)):(2 + (i * 2))] <- c(
       "ref", paste0(
-        dF(smod$conf.int[1, 1], dig = 1),
-        " (", dF(smod$conf.int[1, 3], dig = 1),
-        "-", dF(smod$conf.int[1, 4], dig = 1), "), ",
-        dF(smod$coef[1, 5], dig = 3, p = TRUE)
+        fn(smod$conf.int[1, 1], dig = 1),
+        " (", fn(smod$conf.int[1, 3], dig = 1),
+        "-", fn(smod$conf.int[1, 4], dig = 1), "), ",
+        fn(smod$coef[1, 5], dig = 3, p = TRUE)
       )
     )
 
     if (i == 1) {
-      out[4, 7] <- last(dF(car::Anova(mod, type = 3)$`Pr(>Chisq)`, dig = 3, p = T))
+      out[4, 3 + length(levsef) * 2] <- last(fn(car::Anova(mod, type = 3)$`Pr(>Chisq)`, dig = 3, p = T))
     }
   }
   return(out)
 }
+
+survmy2 <- function(data2, efvar2, ravar2, title) {
+  cvdhosp <- survmy(
+    data = data2,
+    efvar = efvar2,
+    time = "sos_outtime_deathcvhosphfstrokemi",
+    event = "sos_out_deathcvhosphfstrokemi",
+    eventname = "CVD/First HF/stroke/MI hospitalization (%)",
+    ravar = ravar2
+  )
+
+  hfhosp <- survmy(
+    data = data2,
+    efvar = efvar2,
+    time = "sos_outtime_hosphf",
+    event = "sos_out_hosphf",
+    eventname = "First HF hospitalization (%)",
+    ravar = ravar2
+  )
+
+  death <- survmy(
+    data = data2,
+    efvar = efvar2,
+    time = "sos_outtime_death",
+    event = "sos_out_death",
+    eventname = "Death (%)",
+    ravar = ravar2
+  )
+
+  coxoutall <- cbind(
+    "Population" = c(title, rep(NA, 4 * 3 - 1)),
+    bind_rows(cvdhosp, hfhosp, death)
+  )
+}
 ```
 
-```{r coxtab2out, cache=cacheon, dependson="coxtab"}
-cvdhosp <- survmy(
-  data = pdata %>% filter(shf_location == "Out-patient"),
-  efvar = "shf_ef_cat2",
-  time = "sos_outtime_deathcvhosphfstrokemi",
-  event = "sos_out_deathcvhosphfstrokemi",
-  eventname = "CVD/First HF/stroke/MI hospitalization (%)",
-  ravar = "sos_com_ra"
+```{r coxtab2, cache=cacheon, dependson="coxtab"}
+allpat <- survmy2(
+  data2 = pdata,
+  efvar2 = "shf_ef_cat2",
+  ravar2 = "sos_com_ra",
+  title = "All"
+)
+allpat6mo <- survmy2(
+  data2 = pdata,
+  efvar2 = "shf_ef_cat2",
+  ravar2 = "sos_com_ra_blank6mo",
+  title = "All - blanking 6mo"
 )
 
-hfhosp <- survmy(
-  data = pdata %>% filter(shf_location == "Out-patient"),
-  efvar = "shf_ef_cat2",
-  time = "sos_outtime_hosphf",
-  event = "sos_out_hosphf",
-  eventname = "First HF hospitalization (%)"
+outpat <- survmy2(
+  data2 = pdata %>% filter(shf_location == "Out-patient"),
+  efvar2 = "shf_ef_cat2",
+  ravar2 = "sos_com_ra",
+  title = "Out-patient"
+)
+outpat6mo <- survmy2(
+  data2 = pdata %>% filter(shf_location == "Out-patient"),
+  efvar2 = "shf_ef_cat2",
+  ravar2 = "sos_com_ra_blank6mo",
+  title = "Out-patient - blanking 6mo"
 )
 
-death <- survmy(
-  data = pdata %>% filter(shf_location == "Out-patient"),
-  efvar = "shf_ef_cat2",
-  time = "sos_outtime_death",
-  event = "sos_out_death",
-  eventname = "Death (%)"
+inpat <- survmy2(
+  data2 = pdata %>% filter(shf_location == "In-patient"),
+  efvar2 = "shf_ef_cat2",
+  ravar2 = "sos_com_ra",
+  title = "In-patient"
+)
+inpat6mo <- survmy2(
+  data2 = pdata %>% filter(shf_location == "In-patient"),
+  efvar2 = "shf_ef_cat2",
+  ravar2 = "sos_com_ra_blank6mo",
+  title = "In-patient - blanking 6mo"
 )
 
-coxoutall <- bind_rows(cvdhosp, hfhosp, death)
+coxoutall <- bind_rows(allpat, allpat6mo, outpat, outpat6mo, inpat, inpat6mo)
 colnames(coxoutall) <- c(
-  "Outcome", "Model",
+  "Population", "Outcome", "Model",
   rep(c("No RA", "RA"), 2),
   "Interaction p"
 )
 
-write.xlsx(coxoutall, paste0("./output/tabs/coxtab2_out_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+write.xlsx(coxoutall, paste0("./output/tabs/coxtab2ef_", Sys.Date(), ".xlsx"), rowNames = FALSE)
 
-myHeader <- c(" " = 1, " " = 1, "<40%" = 2, ">=40%" = 2, " " = 1)
-names(myHeader) <- c(" ", " ", "<40%", ">=40%", " ")
-
-footnote(mykable(coxoutall,
-  fontsize = 10,
-  caption = sanitize_text("Associations between outcomes and prior RA by EF </>=40% - Out-patients")
+footnote(default_kable(coxoutall,
+  font_size = 10,
+  caption = sanitize_text("Associations between outcomes and prior RA by EF </>=40%")
 ) %>%
   landscape() %>%
-  add_header_above(myHeader),
+  add_header_above(c(" " = 1, " " = 1, " " = 1, "LVEF<40%" = 2, "LVEF>=40%" = 2, " " = 1)),
 symbol = c(
   "Incidence = no events, sum py, rate/1000py (95% CI)."
 )
 )
 ```
 
-```{r coxtab2blanksensout, cache=cacheon, dependson="coxtab"}
-cvdhosp <- survmy(
-  data = pdata %>% filter(shf_location == "Out-patient"),
-  efvar = "shf_ef_cat2",
-  time = "sos_outtime_deathcvhosphfstrokemi",
-  event = "sos_out_deathcvhosphfstrokemi",
-  eventname = "CVD/First HF/stroke/MI hospitalization (%)",
-  ravar = "sos_com_ra_blank6mo"
+```{r coxtab3, cache=cacheon, dependson="coxtab"}
+allpat <- survmy2(
+  data2 = pdata,
+  efvar2 = "shf_ef_cat",
+  ravar2 = "sos_com_ra",
+  title = "All"
+)
+allpat6mo <- survmy2(
+  data2 = pdata,
+  efvar2 = "shf_ef_cat",
+  ravar2 = "sos_com_ra_blank6mo",
+  title = "All - blanking 6mo"
 )
 
-hfhosp <- survmy(
-  data = pdata %>% filter(shf_location == "Out-patient"),
-  efvar = "shf_ef_cat2",
-  time = "sos_outtime_hosphf",
-  event = "sos_out_hosphf",
-  eventname = "First HF hospitalization (%)",
-  ravar = "sos_com_ra_blank6mo"
+outpat <- survmy2(
+  data2 = pdata %>% filter(shf_location == "Out-patient"),
+  efvar2 = "shf_ef_cat",
+  ravar2 = "sos_com_ra",
+  title = "Out-patient"
+)
+outpat6mo <- survmy2(
+  data2 = pdata %>% filter(shf_location == "Out-patient"),
+  efvar2 = "shf_ef_cat",
+  ravar2 = "sos_com_ra_blank6mo",
+  title = "Out-patient - blanking 6mo"
 )
 
-death <- survmy(
-  data = pdata %>% filter(shf_location == "Out-patient"),
-  efvar = "shf_ef_cat2",
-  time = "sos_outtime_death",
-  event = "sos_out_death",
-  eventname = "Death (%)",
-  ravar = "sos_com_ra_blank6mo"
+inpat <- survmy2(
+  data2 = pdata %>% filter(shf_location == "In-patient"),
+  efvar2 = "shf_ef_cat",
+  ravar2 = "sos_com_ra",
+  title = "In-patient"
+)
+inpat6mo <- survmy2(
+  data2 = pdata %>% filter(shf_location == "In-patient"),
+  efvar2 = "shf_ef_cat",
+  ravar2 = "sos_com_ra_blank6mo",
+  title = "In-patient - blanking 6mo"
 )
 
-coxoutall <- bind_rows(cvdhosp, hfhosp, death)
+coxoutall <- bind_rows(allpat, allpat6mo, outpat, outpat6mo, inpat, inpat6mo)
 colnames(coxoutall) <- c(
-  "Outcome", "Model",
-  rep(c("No RA", "RA"), 2),
-  "Interaction p"
-)
-
-write.xlsx(coxoutall, paste0("./output/tabs/coxtab2_blank6mo_out_", Sys.Date(), ".xlsx"), rowNames = FALSE)
-
-myHeader <- c(" " = 1, " " = 1, "<40%" = 2, ">=40%" = 2, " " = 1)
-names(myHeader) <- c(" ", " ", "<40%", ">=40%", " ")
-
-footnote(mykable(coxoutall,
-  fontsize = 10,
-  caption = sanitize_text("Associations between outcomes and prior RA with blanking 6 mo by EF </>=40% - Out-patients")
-) %>%
-  landscape() %>%
-  add_header_above(myHeader),
-symbol = c(
-  "Incidence = no events, sum py, rate/1000py (95% CI)."
-)
-)
-```
-
-```{r coxtabout, cache=cacheon, dependson="coxtab"}
-cvdhosp <- survmy(
-  data = pdata %>% filter(shf_location == "Out-patient"),
-  efvar = "shf_ef_cat",
-  time = "sos_outtime_deathcvhosphfstrokemi",
-  event = "sos_out_deathcvhosphfstrokemi",
-  eventname = "CVD/First HF/stroke/MI hospitalization (%)"
-)
-
-hfhosp <- survmy(
-  data = pdata %>% filter(shf_location == "Out-patient"),
-  efvar = "shf_ef_cat",
-  time = "sos_outtime_hosphf",
-  event = "sos_out_hosphf",
-  eventname = "First HF hospitalization (%)"
-)
-
-death <- survmy(
-  data = pdata %>% filter(shf_location == "Out-patient"),
-  efvar = "shf_ef_cat",
-  time = "sos_outtime_death",
-  event = "sos_out_death",
-  eventname = "Death (%)"
-)
-
-coxoutall <- bind_rows(cvdhosp, hfhosp, death)
-colnames(coxoutall) <- c(
-  "Outcome", "Model",
+  "Population", "Outcome", "Model",
   rep(c("No RA", "RA"), 3),
   "Interaction p"
 )
 
-write.xlsx(coxoutall, paste0("./output/tabs/coxtab_out_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+write.xlsx(coxoutall, paste0("./output/tabs/coxtab3ef_", Sys.Date(), ".xlsx"), rowNames = FALSE)
 
-myHeader <- c(" " = 1, " " = 1, "rEF" = 2, "mrEF" = 2, "pEF" = 2, " " = 1)
-names(myHeader) <- c(" ", " ", "rEF", "mrEF", "pEF", " ")
-
-footnote(mykable(coxoutall,
-  fontsize = 10,
-  caption = paste0("Associations between outcomes and prior RA by r/mr/pEF - Out-patients")
+footnote(default_kable(coxoutall,
+  font_size = 10,
+  caption = sanitize_text("Associations between outcomes and prior RA by r/mr/pEF")
 ) %>%
   landscape() %>%
-  add_header_above(myHeader),
-symbol = c(
-  "Incidence = no events, sum py, rate/1000py (95% CI)."
-)
-)
-```
-
-```{r coxtab2in, cache=cacheon, dependson="coxtab"}
-cvdhosp <- survmy(
-  data = pdata %>% filter(shf_location == "In-patient"),
-  efvar = "shf_ef_cat2",
-  time = "sos_outtime_deathcvhosphfstrokemi",
-  event = "sos_out_deathcvhosphfstrokemi",
-  eventname = "CVD/First HF/stroke/MI hospitalization (%)",
-  ravar = "sos_com_ra"
-)
-
-hfhosp <- survmy(
-  data = pdata %>% filter(shf_location == "In-patient"),
-  efvar = "shf_ef_cat2",
-  time = "sos_outtime_hosphf",
-  event = "sos_out_hosphf",
-  eventname = "First HF hospitalization (%)"
-)
-
-death <- survmy(
-  data = pdata %>% filter(shf_location == "In-patient"),
-  efvar = "shf_ef_cat2",
-  time = "sos_outtime_death",
-  event = "sos_out_death",
-  eventname = "Death (%)"
-)
-
-coxoutall <- bind_rows(cvdhosp, hfhosp, death)
-colnames(coxoutall) <- c(
-  "Outcome", "Model",
-  rep(c("No RA", "RA"), 2),
-  "Interaction p"
-)
-
-write.xlsx(coxoutall, paste0("./output/tabs/coxtab2_in_", Sys.Date(), ".xlsx"), rowNames = FALSE)
-
-myHeader <- c(" " = 1, " " = 1, "<40%" = 2, ">=40%" = 2, " " = 1)
-names(myHeader) <- c(" ", " ", "<40%", ">=40%", " ")
-
-footnote(mykable(coxoutall,
-  fontsize = 10,
-  caption = sanitize_text("Associations between outcomes and prior RA by EF </>=40% - In-patients")
-) %>%
-  landscape() %>%
-  add_header_above(myHeader),
-symbol = c(
-  "Incidence = no events, sum py, rate/1000py (95% CI)."
-)
-)
-```
-
-```{r coxtab2blanksensin, cache=cacheon, dependson="coxtab"}
-cvdhosp <- survmy(
-  data = pdata %>% filter(shf_location == "In-patient"),
-  efvar = "shf_ef_cat2",
-  time = "sos_outtime_deathcvhosphfstrokemi",
-  event = "sos_out_deathcvhosphfstrokemi",
-  eventname = "CVD/First HF/stroke/MI hospitalization (%)",
-  ravar = "sos_com_ra_blank6mo"
-)
-
-hfhosp <- survmy(
-  data = pdata %>% filter(shf_location == "In-patient"),
-  efvar = "shf_ef_cat2",
-  time = "sos_outtime_hosphf",
-  event = "sos_out_hosphf",
-  eventname = "First HF hospitalization (%)",
-  ravar = "sos_com_ra_blank6mo"
-)
-
-death <- survmy(
-  data = pdata %>% filter(shf_location == "In-patient"),
-  efvar = "shf_ef_cat2",
-  time = "sos_outtime_death",
-  event = "sos_out_death",
-  eventname = "Death (%)",
-  ravar = "sos_com_ra_blank6mo"
-)
-
-coxoutall <- bind_rows(cvdhosp, hfhosp, death)
-colnames(coxoutall) <- c(
-  "Outcome", "Model",
-  rep(c("No RA", "RA"), 2),
-  "Interaction p"
-)
-
-write.xlsx(coxoutall, paste0("./output/tabs/coxtab2_blank6mo_in_", Sys.Date(), ".xlsx"), rowNames = FALSE)
-
-myHeader <- c(" " = 1, " " = 1, "<40%" = 2, ">=40%" = 2, " " = 1)
-names(myHeader) <- c(" ", " ", "<40%", ">=40%", " ")
-
-footnote(mykable(coxoutall,
-  fontsize = 10,
-  caption = sanitize_text("Associations between outcomes and prior RA with blanking 6 mo by EF </>=40% - In-patients")
-) %>%
-  landscape() %>%
-  add_header_above(myHeader),
-symbol = c(
-  "Incidence = no events, sum py, rate/1000py (95% CI)."
-)
-)
-```
-
-```{r coxtabin, cache=cacheon, dependson="coxtab"}
-cvdhosp <- survmy(
-  data = pdata %>% filter(shf_location == "In-patient"),
-  efvar = "shf_ef_cat",
-  time = "sos_outtime_deathcvhosphfstrokemi",
-  event = "sos_out_deathcvhosphfstrokemi",
-  eventname = "CVD/First HF/stroke/MI hospitalization (%)"
-)
-
-hfhosp <- survmy(
-  data = pdata %>% filter(shf_location == "In-patient"),
-  efvar = "shf_ef_cat",
-  time = "sos_outtime_hosphf",
-  event = "sos_out_hosphf",
-  eventname = "First HF hospitalization (%)"
-)
-
-death <- survmy(
-  data = pdata %>% filter(shf_location == "In-patient"),
-  efvar = "shf_ef_cat",
-  time = "sos_outtime_death",
-  event = "sos_out_death",
-  eventname = "Death (%)"
-)
-
-coxoutall <- bind_rows(cvdhosp, hfhosp, death)
-colnames(coxoutall) <- c(
-  "Outcome", "Model",
-  rep(c("No RA", "RA"), 3),
-  "Interaction p"
-)
-
-write.xlsx(coxoutall, paste0("./output/tabs/coxtab_in_", Sys.Date(), ".xlsx"), rowNames = FALSE)
-
-myHeader <- c(" " = 1, " " = 1, "rEF" = 2, "mrEF" = 2, "pEF" = 2, " " = 1)
-names(myHeader) <- c(" ", " ", "rEF", "mrEF", "pEF", " ")
-
-footnote(mykable(coxoutall,
-  fontsize = 10,
-  caption = paste0("Associations between outcomes and prior RA by r/mr/pEF - In-patients")
-) %>%
-  landscape() %>%
-  add_header_above(myHeader),
+  add_header_above(c(" " = 1, " " = 1, " " = 1, "HFrEF" = 2, "HFmrEF" = 2, "HFpEF" = 2, " " = 1)),
 symbol = c(
   "Incidence = no events, sum py, rate/1000py (95% CI)."
 )

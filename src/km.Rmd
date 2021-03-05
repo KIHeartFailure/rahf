@@ -2,7 +2,7 @@
 
 kmfunc <- function(data, time, event, eventname, yposplus = rep(0, 4)) {
   fit <- survfit(formula(paste0("Surv(", time, ",", event, "=='Yes') ~ shf_ef_cat2 + sos_com_ra")),
-    data = data %>% filter(casecontrol == "Case")
+    data = data
   )
 
   ## logrank
@@ -13,7 +13,7 @@ kmfunc <- function(data, time, event, eventname, yposplus = rep(0, 4)) {
   # p <- dF(pchisq(sd$chisq, length(sd$n) - 1, lower.tail = FALSE), dig = 3, p = TRUE)
 
   # c(bottom, left, top, right)
-  par(mar = c(4, 6, 1, 11) + 0.1)
+  par(mar = c(4, 6, 1, 8) + 0.1)
   plots <- plot(fit,
     fun = "event",
     ylab = eventname,
@@ -37,8 +37,7 @@ kmfunc <- function(data, time, event, eventname, yposplus = rep(0, 4)) {
   ypos <- 1 - summary(fit, 5 * 365)$surv
   ytext <- paste0(rep(levels(pdata$shf_ef_cat2), each = 2), "/", rep(c("No RA", "RA"), 2))
 
-  ylabs <- bind_cols(ypos = ypos + yposplus, ytext = ytext) %>%
-    arrange(ypos)
+  ylabs <- bind_cols(ypos = ypos + yposplus, ytext = ytext)
 
   mtext(
     side = 4,
@@ -52,12 +51,38 @@ kmfunc <- function(data, time, event, eventname, yposplus = rep(0, 4)) {
 }
 ```
 
+```{r kmcvdeathhfstrokemihospall, fig.cap="1-KM CVD/First HF/stroke/MI hospitalization - All", cache=cacheon, dependson="km"}
+kmfunc(
+  data = pdata,
+  time = "sos_outtime_deathcvhosphfstrokemi", event = "sos_out_deathcvhosphfstrokemi",
+  eventname = "CVD/First HF/stroke/MI hospitalization (%)",
+  yposplus = c(0.01, 0, 0.0, -0.0)
+)
+```
+
+```{r kmhfhospall, fig.cap="1-KM First HF hospitalization - All", cache=cacheon, dependson="km"}
+kmfunc(
+  data = pdata,
+  time = "sos_outtime_hosphf", event = "sos_out_hosphf", 
+  eventname = "First HF hospitalization (%)",
+  yposplus = c(0.0, 0, -0.0, 0)
+)
+```
+
+```{r kmdeathall, fig.cap="1-KM Death - All", cache=cacheon, dependson="km"}
+kmfunc(
+  data = pdata,
+  time = "sos_outtime_death", event = "sos_out_death", eventname = "Death (%)",
+  yposplus = c(0, -0.0, -0.0, 0.0)
+)
+```
+
 ```{r kmcvdeathhfstrokemihospout, fig.cap="1-KM CVD/First HF/stroke/MI hospitalization - Out-patients", cache=cacheon, dependson="km"}
 kmfunc(
   data = pdata %>% filter(shf_location == "Out-patient"),
   time = "sos_outtime_deathcvhosphfstrokemi", event = "sos_out_deathcvhosphfstrokemi",
   eventname = "CVD/First HF/stroke/MI hospitalization (%)",
-  yposplus = c(0, 0, 0.01, -0.01)
+  yposplus = c(0, 0, 0, 0)
   # "<40%/No RA"  "<40%/RA"     "=>40%/No RA" "=>40%/RA"
 )
 ```
@@ -67,7 +92,7 @@ kmfunc(
   data = pdata %>% filter(shf_location == "Out-patient"),
   time = "sos_outtime_hosphf", event = "sos_out_hosphf", 
   eventname = "First HF hospitalization (%)",
-  yposplus = c(0.01, 0, 0.0, -0.0)
+  yposplus = c(0, 0, 0, 0)
 )
 # "<40%/No RA"  "<40%/RA"     "=>40%/No RA" "=>40%/RA"
 ```
@@ -76,8 +101,9 @@ kmfunc(
 kmfunc(
   data = pdata %>% filter(shf_location == "Out-patient"),
   time = "sos_outtime_death", event = "sos_out_death", eventname = "Death (%)",
-  yposplus = c(0, 0, +0.01, -0.01)
+  yposplus = c(0.01, 0, 0.01, -0.00)
 )
+# "<40%/No RA"  "<40%/RA"     "=>40%/No RA" "=>40%/RA"
 ```
 
 ```{r kmcvdeathhfstrokemihospin, fig.cap="1-KM CVD/First HF/stroke/MI hospitalization - In-patients", cache=cacheon, dependson="km"}
@@ -85,8 +111,9 @@ kmfunc(
   data = pdata %>% filter(shf_location == "In-patient"),
   time = "sos_outtime_deathcvhosphfstrokemi", event = "sos_out_deathcvhosphfstrokemi",
   eventname = "CVD/First HF/stroke/MI hospitalization (%)",
-  yposplus = c(0, 0, 0.01, -0.01)
+  yposplus = c(0.01, 0, 0.01, -0.005)
 )
+# "<40%/No RA"  "<40%/RA"     "=>40%/No RA" "=>40%/RA"
 ```
 
 ```{r kmhfhospin, fig.cap="1-KM First HF hospitalization - In-patients", cache=cacheon, dependson="km"}
@@ -94,7 +121,7 @@ kmfunc(
   data = pdata %>% filter(shf_location == "In-patient"),
   time = "sos_outtime_hosphf", event = "sos_out_hosphf", 
   eventname = "First HF hospitalization (%)",
-  yposplus = c(0.02, 0, -0.02, 0)
+  yposplus = c(0.02, 0, 0.005, -0.006)
 )
 ```
 
@@ -102,6 +129,6 @@ kmfunc(
 kmfunc(
   data = pdata %>% filter(shf_location == "In-patient"),
   time = "sos_outtime_death", event = "sos_out_death", eventname = "Death (%)",
-  yposplus = c(0, -0.0, -0.005, 0.0)
+  yposplus = c(0, -0.0, -0, 0.0)
 )
 ```

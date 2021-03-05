@@ -57,8 +57,8 @@ tabvars <- c(
 )
 
 modvars1 <- c(
-  #"shf_sex",
-  #"shf_age",
+  "shf_sex",
+  "shf_age",
   "sos_com_diabetes",
   "sos_com_hypertension",
   "sos_com_ihd",

@@ -1,4 +1,4 @@
-# R code for the project Differences in HF phenotype between incident HF patients with and without prior RA
+# R code for the project Association Between Rheumatoid Arthritis and Ejection Fraction in Incident Heart Failure
 
 The aim of this R code is to be transparant and document the data handling 
 and statistical analyses performed for the project.

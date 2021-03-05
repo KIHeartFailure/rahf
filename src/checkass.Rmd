@@ -1,0 +1,124 @@
+```{r checkass, cache=cacheon, include=FALSE}
+
+# Logistic regression -----------------------------------------------------
+
+modlm <- glm(formula(paste0(
+  "shf_ef_cat2 ~ sos_com_ra + ",
+  paste(modvars2, collapse = " + ")
+)),
+family = "binomial",
+data = pdata
+)
+
+## Outliers --------------------------------------------------------------
+
+plot(modlm, which = 4, id.n = 3)
+
+
+## Multicollinearity ------------------------------------------------------
+
+car::vif(modlm)
+
+# Cox regression ----------------------------------------------------------
+
+checkassfunc <- function(event, time, data = pdata, plotra = TRUE, plotef = TRUE) {
+  mod <- coxph(formula(paste0(
+    "Surv(", time, ",", event, "=='Yes') ~ sos_com_ra * shf_ef_cat2 + ",
+    paste(modvars2, collapse = " + ")
+  )),
+  data = data
+  )
+
+  # Checking for non-prop hazards --------------------------------------------
+
+  testpat <- cox.zph(mod)
+  print((sig <- testpat$table[testpat$table[, 3] < 0.05, ]))
+
+  if (plotra & plotef) {
+    par(mfrow = c(2, 1))
+  } else {
+    par(mfrow = c(1, 1))
+  }
+
+  if (plotra) {
+    # check spec for ra
+    plot(testpat[1], resid = F, ylim = c(-4, 4))
+  }
+
+  if (plotef) {
+    # check spec for ef
+    plot(testpat[2], resid = F, ylim = c(-4, 4))
+  }
+}
+
+checkassfunc(
+  time = "sos_outtime_deathcvhosphfstrokemi",
+  event = "sos_out_deathcvhosphfstrokemi"
+)
+
+checkassfunc(
+  time = "sos_outtime_hosphf",
+  event = "sos_out_hosphf"
+)
+
+checkassfunc(
+  time = "sos_outtime_death",
+  event = "sos_out_death"
+)
+
+checkassfunc(
+  time = "sos_outtime_deathcvhosphfstrokemi",
+  event = "sos_out_deathcvhosphfstrokemi",
+  data = pdata %>% filter(shf_location == "In-patient")
+)
+checkassfunc(
+  time = "sos_outtime_deathcvhosphfstrokemi",
+  event = "sos_out_deathcvhosphfstrokemi",
+  data = pdata %>% filter(shf_location == "Out-patient")
+)
+
+
+checkassfunc(
+  time = "sos_outtime_deathcvhosphfstrokemi",
+  event = "sos_out_deathcvhosphfstrokemi",
+  plotra = F
+)
+
+
+mod <- coxph(Surv(sos_outtime_deathcvhosphfstrokemi, sos_out_deathcvhosphfstrokemi == "Yes") ~ shf_ef_cat2,
+  data = pdata
+)
+
+testpat <- cox.zph(mod)
+print((sig <- testpat$table[testpat$table[, 3] < 0.05, ]))
+
+plot(testpat)
+
+```
+
+```{r nonpropplot, cache=cacheon, fig.cap = "\\label{fig:nonpropplot}Visualizing non-proportional hazards for EF"}
+fit <- survfit(Surv(sos_outtime_deathcvhosphfstrokemi, sos_out_deathcvhosphfstrokemi == "Yes") ~ shf_ef_cat2,
+  data = pdata
+)
+
+plot(fit,
+  ylab = "CVD/First HF/stroke/MI hospitalization (%)",
+  xscale = 365.25,
+  yscale = 100,
+  col = global_kicols[1:2],
+  mark.time = FALSE,
+  bty = "n",
+  xlim = c(0, 10.25 * 365),
+  ylim = c(0, 1),
+  xlab = "Years",
+  axes = F,
+  lwd = 1.5,
+  lty = c(1, 2),
+  xaxs = "i", yaxs = "i"
+)
+
+axis(2, seq(0, 1, 0.25), seq(0, 100, 25), las = 2)
+axis(1, at = seq(0, 10, 1) * 365, seq(0, 10, 1))
+
+legend("topright", levels(pdata$shf_ef_cat2), col = global_kicols[1:2], lty = c(1, 2), bty = "n")
+```

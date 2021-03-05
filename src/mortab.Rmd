@@ -1,0 +1,278 @@
+```{r ortab, cache=cacheon}
+
+ormy <- function(data, ravar = "sos_com_ra", popname) {
+  levsef <- levels(data %>% pull(shf_ef_cat2))
+
+  nc <- 2 + length(levsef)
+  out <- data.frame(matrix(NA, ncol = nc, nrow = 4))
+
+  out[1, 1] <- popname
+
+  colnames(out) <- c(
+    "Population", "Model",
+    levsef
+  )
+
+  ## no and %
+  out[1, 2] <- "n (%) prior RA"
+
+  npdata <- data %>%
+    group_by(shf_ef_cat2) %>%
+    count(!!sym(ravar)) %>%
+    mutate(np = paste0(n, " (", fn(n / sum(n) * 100, 1), "%)")) %>%
+    ungroup() %>%
+    filter(!!sym(ravar) == "Yes")
+
+  out[1, 3:4] <- npdata$np
+
+  # log reg regressions
+  ## crude
+  mod <- summary(glm(formula(paste0("shf_ef_cat2 == 'LVEF =>40%' ~ ", ravar)),
+    family = binomial(link = "logit"),
+    data = data
+  ))
+
+  out[2, 2] <- "Crude OR (95% CI), p"
+  out[2, 3:4] <- c(
+    "ref",
+    paste0(
+      fn(exp(mod$coefficients[2, 1]), 1),
+      " (",
+      fn(exp(mod$coefficients[2, 1] - global_z05 * mod$coefficients[2, 2]), 1),
+      "-",
+      fn(exp(mod$coefficients[2, 1] + global_z05 * mod$coefficients[2, 2]), 1),
+      "), ",
+      fn(mod$coefficients[2, 4], dig = 3, p = T)
+    )
+  )
+
+  ## adj comorbs
+
+  mod <- summary(glm(formula(paste0("shf_ef_cat2 == 'LVEF =>40%' ~ ", ravar, " + ", paste(modvars1, collapse = " + "))),
+    family = binomial(link = "logit"),
+    data = data
+  ))
+
+  out[3, 2] <- "Adj age, sex, comorbs OR (95% CI), p"
+  out[3, 3:4] <- c(
+    "ref",
+    paste0(
+      fn(exp(mod$coefficients[2, 1]), 1),
+      " (",
+      fn(exp(mod$coefficients[2, 1] - global_z05 * mod$coefficients[2, 2]), 1),
+      "-",
+      fn(exp(mod$coefficients[2, 1] + global_z05 * mod$coefficients[2, 2]), 1),
+      "), ",
+      fn(mod$coefficients[2, 4], dig = 3, p = T)
+    )
+  )
+
+  ## adj comorbs + socioec
+
+  mod <- summary(glm(formula(paste0("shf_ef_cat2 == 'LVEF =>40%' ~ ", ravar, " + ", paste(modvars2, collapse = " + "))),
+    family = binomial(link = "logit"),
+    data = data
+  ))
+
+  out[4, 2] <- "Adj age, sex, comorbs, socec OR (95% CI), p"
+  out[4, 3:4] <- c(
+    "ref",
+    paste0(
+      fn(exp(mod$coefficients[2, 1]), 1),
+      " (",
+      fn(exp(mod$coefficients[2, 1] - global_z05 * mod$coefficients[2, 2]), 1),
+      "-",
+      fn(exp(mod$coefficients[2, 1] + global_z05 * mod$coefficients[2, 2]), 1),
+      "), ",
+      fn(mod$coefficients[2, 4], dig = 3, p = T)
+    )
+  )
+  return(out)
+}
+
+allpat <- ormy(
+  data = pdata,
+  ravar = "sos_com_ra",
+  popname = "All"
+)
+allpat6mo <- ormy(
+  data = pdata,
+  ravar = "sos_com_ra_blank6mo",
+  popname = "All - blanking 6mo"
+)
+
+outpat <- ormy(
+  data = pdata %>% filter(shf_location == "Out-patient"),
+  ravar = "sos_com_ra",
+  popname = "Out-patient"
+)
+outpat6mo <- ormy(
+  data = pdata %>% filter(shf_location == "Out-patient"),
+  ravar = "sos_com_ra_blank6mo",
+  popname = "Out-patient - blanking 6mo"
+)
+
+inpat <- ormy(
+  data = pdata %>% filter(shf_location == "In-patient"),
+  ravar = "sos_com_ra",
+  popname = "In-patient"
+)
+inpat6mo <- ormy(
+  data = pdata %>% filter(shf_location == "In-patient"),
+  ravar = "sos_com_ra_blank6mo",
+  popname = "In-patient - blanking 6mo"
+)
+
+oroutall <- bind_rows(allpat, allpat6mo, outpat, outpat6mo, inpat, inpat6mo)
+
+write.xlsx(oroutall, paste0("./output/tabs/ortab2ef_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+
+default_kable(oroutall,
+  caption = sanitize_text("Associations between incident HF and prior RA by EF </>=40%")
+)
+```
+
+```{r mortab, include = FALSE, cache=cacheon}
+mormy <- function(data, ravar = "sos_com_ra", popname) {
+  levsef <- levels(data %>% pull(shf_ef_cat))
+
+  nc <- 2 + length(levsef)
+  out <- data.frame(matrix(NA, ncol = nc, nrow = 4))
+
+  out[1, 1] <- popname
+
+  colnames(out) <- c(
+    "Population", "Model",
+    levsef
+  )
+
+  ## no and %
+  out[1, 2] <- "n (%) prior RA"
+
+  npdata <- data %>%
+    group_by(shf_ef_cat) %>%
+    count(!!sym(ravar)) %>%
+    mutate(np = paste0(n, " (", fn(n / sum(n) * 100, 1), "%)")) %>%
+    ungroup() %>%
+    filter(!!sym(ravar) == "Yes")
+
+  out[1, 3:5] <- npdata$np
+
+
+  ## crude
+  mod <- summary(multinom(formula(paste0("shf_ef_cat ~ ", ravar)), data = data))
+
+  z <- mod$coefficients / mod$standard.errors
+  p <- (1 - pnorm(abs(z), 0, 1)) * global_z05
+
+
+  out[2, 2] <- "Crude OR (95% CI), p"
+  out[2, 3:5] <- c(
+    "ref",
+    paste0(
+      fn(exp(mod$coefficients[, 2]), 1),
+      " (",
+      fn(exp(mod$coefficients[, 2] - global_z05 * mod$standard.errors[, 2]), 1),
+      "-",
+      fn(exp(mod$coefficients[, 2] + global_z05 * mod$standard.errors[, 2]), 1),
+      "), ",
+      fn(p[, 2], dig = 3, p = T)
+    )
+  )
+
+  ## adj comorbs
+  mod <- summary(multinom(formula(paste0(
+    "shf_ef_cat ~ ", ravar, " + ",
+    paste(modvars1, collapse = " + ")
+  )),
+  data = data
+  ))
+
+  z <- mod$coefficients / mod$standard.errors
+  p <- (1 - pnorm(abs(z), 0, 1)) * global_z05
+
+  out[3, 2] <- "Adj age, sex, comorbs OR (95% CI), p"
+  out[3, 3:5] <- c(
+    "ref",
+    paste0(
+      fn(exp(mod$coefficients[, 2]), 1),
+      " (",
+      fn(exp(mod$coefficients[, 2] - global_z05 * mod$standard.errors[, 2]), 1),
+      "-",
+      fn(exp(mod$coefficients[, 2] + global_z05 * mod$standard.errors[, 2]), 1),
+      "), ",
+      fn(p[, 2], dig = 3, p = T)
+    )
+  )
+
+  ## adj comorbs + socioec
+  mod <- summary(multinom(formula(paste0(
+    "shf_ef_cat ~ ", ravar, " + ",
+    paste(modvars2, collapse = " + ")
+  )),
+  data = data
+  ))
+
+  z <- mod$coefficients / mod$standard.errors
+  p <- (1 - pnorm(abs(z), 0, 1)) * global_z05
+
+  out[4, 2] <- "Adj age, sex, comorbs, socec OR (95% CI), p"
+  out[4, 3:5] <- c(
+    "ref",
+    paste0(
+      fn(exp(mod$coefficients[, 2]), 1),
+      " (",
+      fn(exp(mod$coefficients[, 2] - global_z05 * mod$standard.errors[, 2]), 1),
+      "-",
+      fn(exp(mod$coefficients[, 2] + global_z05 * mod$standard.errors[, 2]), 1),
+      "), ",
+      fn(p[, 2], dig = 3, p = T)
+    )
+  )
+  return(out)
+}
+
+allpat <- mormy(
+  data = pdata,
+  ravar = "sos_com_ra",
+  popname = "All"
+)
+allpat6mo <- mormy(
+  data = pdata,
+  ravar = "sos_com_ra_blank6mo",
+  popname = "All - blanking 6mo"
+)
+
+outpat <- mormy(
+  data = pdata %>% filter(shf_location == "Out-patient"),
+  ravar = "sos_com_ra",
+  popname = "Out-patient"
+)
+outpat6mo <- mormy(
+  data = pdata %>% filter(shf_location == "Out-patient"),
+  ravar = "sos_com_ra_blank6mo",
+  popname = "Out-patient - blanking 6mo"
+)
+
+inpat <- mormy(
+  data = pdata %>% filter(shf_location == "In-patient"),
+  ravar = "sos_com_ra",
+  popname = "In-patient"
+)
+inpat6mo <- mormy(
+  data = pdata %>% filter(shf_location == "In-patient"),
+  ravar = "sos_com_ra_blank6mo",
+  popname = "In-patient - blanking 6mo"
+)
+
+moroutall <- bind_rows(allpat, allpat6mo, outpat, outpat6mo, inpat, inpat6mo)
+
+write.xlsx(moroutall, paste0("./output/tabs/ortab3ef_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+
+```
+
+```{r mortabprint, cache=cacheon, dependson="mortab"}
+default_kable(moroutall,
+  caption = sanitize_text("Associations between incident HF and prior RA by r/mr/pEF")
+)
+```
