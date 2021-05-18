@@ -1,14 +1,14 @@
 ```{r tab1, cache=cacheon}
 
-tab1func <- function(data, title) {
+tab1func <- function(data) {
   tab1 <- print(
     CreateTableOne(
       vars = tabvars,
       strata = "sos_com_ra",
       data = data
     ),
-    smd = TRUE,
-    missing = TRUE,
+    smd = FALSE,
+    missing = FALSE,
     printToggle = FALSE,
     nonnormal = tabvars,
     test = TRUE,
@@ -17,99 +17,207 @@ tab1func <- function(data, title) {
     explain = FALSE,
     noSpaces = TRUE
   )
-
   tab1 <- data.frame(tab1) %>%
     rownames_to_column(var = "var") %>%
-    # remove NA
-    mutate(across(everything(), str_replace_all, fixed("NA [NA, NA]"), "-"),
-      across(everything(), str_replace_all, fixed("0 (NaN)"), "-"),
-      # remove = Yes
-      across(everything(), str_replace_all, fixed(" = Yes"), ""),
-      var_tmp = str_split(var, " = ", simplify = TRUE)[, 1],
-      val_tmp = str_split(var, " = ", simplify = TRUE)[, 2],
-      var_tmp = str_replace_all(var_tmp, "_cat2|_cat", "")
-    )
-
-  tab1 <- left_join(tab1,
-    meta.variables.Sheet.1 %>%
-      select(variable, label, unit),
-    by = c("var_tmp" = "variable")
-  ) %>%
-    mutate(
-      Variable = coalesce(label, var_tmp),
-      Variable = if_else(!is.na(unit),
-        paste0(Variable, " (", unit, ")"),
-        Variable
-      ),
-      Variable = if_else(val_tmp != "",
-        paste0(Variable, " ", val_tmp),
-        Variable
-      )
-    )
-
-  write.xlsx(tab1 %>%
-    select(Variable, Missing, No, Yes, SMD, p),
-  paste0("./output/tabs/tab1_", title, "_", Sys.Date(), ".xlsx"),
-  rowNames = FALSE
-  )
-
-  # footnotes
-  tab1 <- tab1 %>%
-    mutate(
-      footnote1 = if_else(str_detect(var, "^shf_"), footnote_marker_symbol(1), ""),
-      footnote2 = if_else(str_detect(var, "^sos_"), footnote_marker_symbol(2), ""),
-      footnote3 = if_else(str_detect(var, "^scb_"), footnote_marker_symbol(3), ""),
-      footnote4 = if_else(str_detect(var, "^shf_rasarni"), footnote_marker_symbol(4), ""),
-      footnote5 = if_else(str_detect(var, "^scb_dispincome_cat"), footnote_marker_symbol(5), "")
-    ) %>%
-    unite(footnote, starts_with("footnote"), sep = "") %>%
-    mutate(
-      # so no probs
-      Variable = sanitize_text(Variable),
-
-      Variable = paste0(Variable, footnote),
-
-      # space in Latex output (fix this other way?)
-      Variable = sub("  ", ". ", Variable)
-    ) %>%
-    select(Variable, Missing, No, Yes, SMD, p)
-
-  colnames(tab1) <- sanitize_text(c(
-    "Variable", "Missing (%)", "No RA", "RA", "SMD", "p-value"
-  ))
-
-  footnote(
-    default_kable(tab1,
-      font_size = 8,
-      caption = paste0("Baseline characteristics - ", title),
-      longtable = TRUE,
-      escape = FALSE
-    ) %>%
-      landscape(),
-    general = c(
-      "Categorical variables are presented with n (%) and tested with chi-square test and continuous variables with median [q1-q3] and tested with Kruskal-Wallis test"
-    ),
-    symbol = c(
-      "Source: SwedeHF",
-      "Source: Socialstyrelsen",
-      "Source: SCB",
-      "arb/acei/arni",
-      "Medium within index year"
-    ),
-    general_title = "",
-    threeparttable = TRUE
-  )
+    select(-test)
 }
 ```
 
-```{r tab1all, cache=cacheon, dependson="tab1"}
-tab1func(data = pdata, title = "All")
+```{r tab12, cache=cacheon, dependson="tab1"}
+tab1 <- tab1func(data = pdata %>% filter(shf_ef_cat2 == "LVEF <40%", casecontrol == "Case"))
+tab2 <- tab1func(data = pdata %>% filter(shf_ef_cat2 == "LVEF <40%", casecontrol == "Control"))
+tab3 <- tab1func(data = pdata %>% filter(shf_ef_cat2 == "LVEF =>40%", casecontrol == "Case"))
+tab4 <- tab1func(data = pdata %>% filter(shf_ef_cat2 == "LVEF =>40%", casecontrol == "Control"))
+
+taball <- Reduce(
+  function(...) {
+    full_join(...,
+      by = "var"
+    )
+  },
+  list(tab1, tab2, tab3, tab4)
+)
+
+taball <- data.frame(taball) %>%
+  # remove NA
+  mutate(across(everything(), str_replace_all, fixed("NA [NA, NA]"), "-"),
+    across(everything(), str_replace_all, fixed("0 (NaN)"), "-"),
+    # remove = Yes
+    across(everything(), str_replace_all, fixed(" = Yes"), ""),
+    var_tmp = str_split(var, " = ", simplify = TRUE)[, 1],
+    val_tmp = str_split(var, " = ", simplify = TRUE)[, 2],
+    var_tmp = str_replace_all(var_tmp, "_cat2|_cat", "")
+  )
+
+taball <- left_join(taball,
+  meta.variables.Sheet.1 %>%
+    select(variable, label, unit),
+  by = c("var_tmp" = "variable")
+) %>%
+  mutate(
+    Variable = coalesce(label, var_tmp),
+    Variable = if_else(!is.na(unit),
+      paste0(Variable, " (", unit, ")"),
+      Variable
+    ),
+    Variable = if_else(val_tmp != "",
+      paste0(Variable, " ", val_tmp),
+      Variable
+    )
+  )
+
+# footnotes
+taball <- taball %>%
+  mutate(
+    footnote1 = if_else(str_detect(var, "^shf_"), footnote_marker_symbol(1), ""),
+    footnote2 = if_else(str_detect(var, "^sos_"), footnote_marker_symbol(2), ""),
+    footnote3 = if_else(str_detect(var, "^scb_"), footnote_marker_symbol(3), ""),
+    footnote4 = if_else(str_detect(var, "^shf_rasarni"), footnote_marker_symbol(4), ""),
+    footnote5 = if_else(str_detect(var, "^scb_dispincome_cat"), footnote_marker_symbol(5), "")
+  ) %>%
+  unite(footnote, starts_with("footnote"), sep = "") %>%
+  mutate(
+    # so no probs
+    Variable = sanitize_text(Variable),
+
+    Variable = paste0(Variable, footnote),
+
+    # space in Latex output (fix this other way?)
+    Variable = sub("  ", ". ", Variable)
+  ) %>%
+  select(Variable, No.x:p.y.y)
+
+colnames(taball) <- sanitize_text(c(
+  "Variable", rep(c("No RA", "RA", "p-value"), 4)
+))
+
+write.xlsx(taball,
+  paste0("./output/tabs/tab12ef_", Sys.Date(), ".xlsx"),
+  rowNames = FALSE
+)
+
+footnote(
+  default_kable(taball,
+    font_size = 3,
+    caption = sanitize_text("Baseline characteristics by EF </>=40%"),
+    longtable = TRUE,
+    escape = FALSE
+  ) %>%
+    landscape() %>%
+    add_header_above(c(" " = 1, "Case" = 3, "Control" = 3, "Case" = 3, "Control" = 3)) %>%
+    add_header_above(c(" " = 1, "LVEF <40%" = 6, "LVEF =>40%" = 6)),
+    general = c(
+    "Categorical variables are presented with n (%) and tested with chi-square test and continuous variables with median [q1-q3] and tested with Kruskal-Wallis test"
+  ),
+  symbol = c(
+    "Source: SwedeHF",
+    "Source: Socialstyrelsen",
+    "Source: SCB",
+    "arb/acei/arni",
+    "Medium within index year"
+  ),
+  general_title = "",
+  threeparttable = TRUE
+)
 ```
 
-```{r tab1out, cache=cacheon, dependson="tab1"}
-tab1func(data = pdata %>% filter(shf_location == "Out-patient"), title = "Out-patients")
+```{r tab13, cache=cacheon, dependson="tab1"}
+tab1 <- tab1func(data = pdata %>% filter(shf_ef_cat == "HFrEF", casecontrol == "Case"))
+tab2 <- tab1func(data = pdata %>% filter(shf_ef_cat == "HFrEF", casecontrol == "Control"))
+tab3 <- tab1func(data = pdata %>% filter(shf_ef_cat == "HFmrEF", casecontrol == "Case"))
+tab4 <- tab1func(data = pdata %>% filter(shf_ef_cat == "HFmrEF", casecontrol == "Control"))
+tab5 <- tab1func(data = pdata %>% filter(shf_ef_cat == "HFpEF", casecontrol == "Case"))
+tab6 <- tab1func(data = pdata %>% filter(shf_ef_cat == "HFpEF", casecontrol == "Control"))
+
+taball <- Reduce(
+  function(...) {
+    full_join(...,
+      by = "var"
+    )
+  },
+  list(tab1, tab2, tab3, tab4, tab5, tab6)
+)
+
+taball <- data.frame(taball) %>%
+  # remove NA
+  mutate(across(everything(), str_replace_all, fixed("NA [NA, NA]"), "-"),
+    across(everything(), str_replace_all, fixed("0 (NaN)"), "-"),
+    # remove = Yes
+    across(everything(), str_replace_all, fixed(" = Yes"), ""),
+    var_tmp = str_split(var, " = ", simplify = TRUE)[, 1],
+    val_tmp = str_split(var, " = ", simplify = TRUE)[, 2],
+    var_tmp = str_replace_all(var_tmp, "_cat2|_cat", "")
+  )
+
+taball <- left_join(taball,
+  meta.variables.Sheet.1 %>%
+    select(variable, label, unit),
+  by = c("var_tmp" = "variable")
+) %>%
+  mutate(
+    Variable = coalesce(label, var_tmp),
+    Variable = if_else(!is.na(unit),
+      paste0(Variable, " (", unit, ")"),
+      Variable
+    ),
+    Variable = if_else(val_tmp != "",
+      paste0(Variable, " ", val_tmp),
+      Variable
+    )
+  )
+
+# footnotes
+taball <- taball %>%
+  mutate(
+    footnote1 = if_else(str_detect(var, "^shf_"), footnote_marker_symbol(1), ""),
+    footnote2 = if_else(str_detect(var, "^sos_"), footnote_marker_symbol(2), ""),
+    footnote3 = if_else(str_detect(var, "^scb_"), footnote_marker_symbol(3), ""),
+    footnote4 = if_else(str_detect(var, "^shf_rasarni"), footnote_marker_symbol(4), ""),
+    footnote5 = if_else(str_detect(var, "^scb_dispincome_cat"), footnote_marker_symbol(5), "")
+  ) %>%
+  unite(footnote, starts_with("footnote"), sep = "") %>%
+  mutate(
+    # so no probs
+    Variable = sanitize_text(Variable),
+
+    Variable = paste0(Variable, footnote),
+
+    # space in Latex output (fix this other way?)
+    Variable = sub("  ", ". ", Variable)
+  ) %>%
+  select(Variable, No.x:p.y.y.y)
+
+colnames(taball) <- sanitize_text(c(
+  "Variable", rep(c("No RA", "RA", "p-value"), 6)
+))
+
+write.xlsx(taball,
+  paste0("./output/tabs/tab13ef_", Sys.Date(), ".xlsx"),
+  rowNames = FALSE
+)
+
+footnote(
+  default_kable(taball,
+    font_size = 2,
+    caption = "Baseline characteristics by r/mr/pEF",
+    longtable = TRUE,
+    escape = FALSE
+  ) %>%
+    landscape() %>%
+    add_header_above(c(" " = 1, "Case" = 3, "Control" = 3, "Case" = 3, "Control" = 3, "Case" = 3, "Control" = 3)) %>%
+    add_header_above(c(" " = 1, "HFrEF" = 6, "HFmrEF" = 6, "HFpEF" = 6)),
+    general = c(
+    "Categorical variables are presented with n (%) and tested with chi-square test and continuous variables with median [q1-q3] and tested with Kruskal-Wallis test"
+  ),
+  symbol = c(
+    "Source: SwedeHF",
+    "Source: Socialstyrelsen",
+    "Source: SCB",
+    "arb/acei/arni",
+    "Medium within index year"
+  ),
+  general_title = "",
+  threeparttable = TRUE
+)
 ```
 
-```{r tab1in, cache=cacheon, dependson="tab1"}
-tab1func(data = pdata %>% filter(shf_location == "In-patient"), title = "In-patients")
-```
