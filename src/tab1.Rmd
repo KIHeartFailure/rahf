@@ -59,10 +59,8 @@ tab1func <- function(data, title) {
       footnote1 = if_else(str_detect(var, "^shf_"), footnote_marker_symbol(1), ""),
       footnote2 = if_else(str_detect(var, "^sos_"), footnote_marker_symbol(2), ""),
       footnote3 = if_else(str_detect(var, "^scb_"), footnote_marker_symbol(3), ""),
-      footnote4 = if_else(var_tmp %in% modvars1, footnote_marker_symbol(4), ""),
-      footnote5 = if_else(var_tmp %in% modvars2, footnote_marker_symbol(5), ""),
-      footnote6 = if_else(str_detect(var, "^shf_rasarni"), footnote_marker_symbol(6), ""),
-      footnote7 = if_else(str_detect(var, "^scb_dispincome_cat"), footnote_marker_symbol(7), "")
+      footnote4 = if_else(str_detect(var, "^shf_rasarni"), footnote_marker_symbol(4), ""),
+      footnote5 = if_else(str_detect(var, "^scb_dispincome_cat"), footnote_marker_symbol(5), "")
     ) %>%
     unite(footnote, starts_with("footnote"), sep = "") %>%
     mutate(
@@ -95,8 +93,6 @@ tab1func <- function(data, title) {
       "Source: SwedeHF",
       "Source: Socialstyrelsen",
       "Source: SCB",
-      "Variables included in Adj models age, sex, comorbs",
-      "Variables included in Adj models age, sex, comorbs, socioec",
       "arb/acei/arni",
       "Medium within index year"
     ),

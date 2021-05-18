@@ -59,14 +59,17 @@ tabvars <- c(
 modvars1 <- c(
   "shf_sex",
   "shf_age",
-  "sos_com_diabetes",
-  "sos_com_hypertension",
-  "sos_com_ihd",
-  "sos_com_af",
-  "sos_com_renal"
+  "sos_com_ihd"
 )
 modvars2 <- c(
   modvars1,
+  "sos_com_diabetes",
+  "sos_com_hypertension",
+  "sos_com_af",
+  "sos_com_renal"
+)
+modvars3 <- c(
+  modvars2,
   "scb_famtype",
   "scb_education",
   "scb_dispincome_cat2"

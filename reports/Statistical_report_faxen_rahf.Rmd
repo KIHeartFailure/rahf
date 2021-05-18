@@ -106,10 +106,6 @@ All analyses were performed using `r sessionInfo()$R.version$version.string` [@r
 The level of significance is set to 5%, two-sided. No adjustment for multiple 
 comparisons were made and therefore the results should be viewed with some care.
 
-### Subgroup analysis - In/out-patients
-
-Subgroup analysis will be performed on patients recorded as out- or in-patients in SwedeHF. 
-
 ### Consistency analysis - Blankning
 
 No blanking period (time prior to HF diagnosis were diagnosis of RA is not considered) 
@@ -130,9 +126,11 @@ where the outcome is EF group.
 Adjustment is performed for variables that are present at the 
 time of the incident HF. 
 
-Adjustment is partly performed for `r paste0(modvars1, collapse = ", ")` 
+Adjustment is performed for age and sex in all models and also for: 
 
-and partly `r paste0(modvars2, collapse = ", ")`.
+- `r paste0(modvars1, collapse = ", ")`, 
+- `r paste0(modvars2, collapse = ", ")`,
+- `r paste0(modvars3, collapse = ", ")`.
 
 ### Assumptions
 

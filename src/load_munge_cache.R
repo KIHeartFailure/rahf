@@ -15,6 +15,7 @@ ProjectTemplate::cache("meta.variables.Sheet.1")
 ProjectTemplate::cache("tabvars")
 ProjectTemplate::cache("modvars1")
 ProjectTemplate::cache("modvars2")
+ProjectTemplate::cache("modvars3")
 
 ProjectTemplate::cache("flow")
 

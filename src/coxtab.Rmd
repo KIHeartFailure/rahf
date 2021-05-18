@@ -3,7 +3,7 @@
 survmy <- function(data, time, event, eventname, efvar, ravar = "sos_com_ra") {
   levsef <- levels(data %>% pull(!!sym(efvar)))
 
-  out <- data.frame(matrix(NA, ncol = 3 + length(levsef) * 2, nrow = 4))
+  out <- data.frame(matrix(NA, ncol = 3 + length(levsef) * 2, nrow = 5))
 
   out[1, 1] <- eventname
 
@@ -42,14 +42,14 @@ survmy <- function(data, time, event, eventname, efvar, ravar = "sos_com_ra") {
   for (i in seq_along(levsef)) {
 
     # cox regressions
-    ## crude
+    ## age age, sex
     mod <- coxph(formula(paste0(
-      "Surv(", time, ",", event, "=='Yes') ~ ", ravar, " * relevel(", efvar, ", ref = '", levsef[i], "')"
+      "Surv(", time, ",", event, "=='Yes') ~ ", ravar, " * relevel(", efvar, ", ref = '", levsef[i], "') + shf_sex + shf_age"
     )),
     data = data
     )
     smod <- summary(mod)
-    out[2, 2] <- "Crude HR (95% CI), p"
+    out[2, 2] <- "Adj age, sex HR (95% CI), p"
     out[2, (1 + (i * 2)):(2 + (i * 2))] <- c(
       "ref", paste0(
         fn(smod$conf.int[1, 1], dig = 1),
@@ -63,7 +63,7 @@ survmy <- function(data, time, event, eventname, efvar, ravar = "sos_com_ra") {
       out[2, 3 + length(levsef) * 2] <- last(fn(car::Anova(mod, type = 3)$`Pr(>Chisq)`, dig = 3, p = T))
     }
 
-    ## adj comorbs
+    ## adj IHD
     mod <- coxph(formula(paste0(
       "Surv(", time, ",", event, "=='Yes') ~ ", ravar, " * relevel(", efvar, ", ref = '", levsef[i], "') + ",
       paste(modvars1, collapse = " + ")
@@ -72,7 +72,7 @@ survmy <- function(data, time, event, eventname, efvar, ravar = "sos_com_ra") {
     )
 
     smod <- summary(mod)
-    out[3, 2] <- "Adj age, sex, comorbs HR (95% CI), p"
+    out[3, 2] <- "Adj age, sex, IHD HR (95% CI), p"
     out[3, (1 + (i * 2)):(2 + (i * 2))] <- c(
       "ref", paste0(
         fn(smod$conf.int[1, 1], dig = 1),
@@ -86,7 +86,7 @@ survmy <- function(data, time, event, eventname, efvar, ravar = "sos_com_ra") {
       out[3, 3 + length(levsef) * 2] <- last(fn(car::Anova(mod, type = 3)$`Pr(>Chisq)`, dig = 3, p = T))
     }
 
-    ## adj comorbs + socioec
+    ## adj comorbs
     mod <- coxph(formula(paste0(
       "Surv(", time, ",", event, "=='Yes') ~ ", ravar, " * relevel(", efvar, ", ref = '", levsef[i], "') + ",
       paste(modvars2, collapse = " + ")
@@ -95,7 +95,7 @@ survmy <- function(data, time, event, eventname, efvar, ravar = "sos_com_ra") {
     )
 
     smod <- summary(mod)
-    out[4, 2] <- "Adj age, sex, comorbs, socec HR (95% CI), p"
+    out[4, 2] <- "Adj age, sex, comorbs HR (95% CI), p"
     out[4, (1 + (i * 2)):(2 + (i * 2))] <- c(
       "ref", paste0(
         fn(smod$conf.int[1, 1], dig = 1),
@@ -107,6 +107,29 @@ survmy <- function(data, time, event, eventname, efvar, ravar = "sos_com_ra") {
 
     if (i == 1) {
       out[4, 3 + length(levsef) * 2] <- last(fn(car::Anova(mod, type = 3)$`Pr(>Chisq)`, dig = 3, p = T))
+    }
+
+    ## adj comorbs + socioec
+    mod <- coxph(formula(paste0(
+      "Surv(", time, ",", event, "=='Yes') ~ ", ravar, " * relevel(", efvar, ", ref = '", levsef[i], "') + ",
+      paste(modvars3, collapse = " + ")
+    )),
+    data = data
+    )
+
+    smod <- summary(mod)
+    out[5, 2] <- "Adj age, sex, comorbs, socec HR (95% CI), p"
+    out[5, (1 + (i * 2)):(2 + (i * 2))] <- c(
+      "ref", paste0(
+        fn(smod$conf.int[1, 1], dig = 1),
+        " (", fn(smod$conf.int[1, 3], dig = 1),
+        "-", fn(smod$conf.int[1, 4], dig = 1), "), ",
+        fn(smod$coef[1, 5], dig = 3, p = TRUE)
+      )
+    )
+
+    if (i == 1) {
+      out[5, 3 + length(levsef) * 2] <- last(fn(car::Anova(mod, type = 3)$`Pr(>Chisq)`, dig = 3, p = T))
     }
   }
   return(out)
@@ -141,7 +164,7 @@ survmy2 <- function(data2, efvar2, ravar2, title) {
   )
 
   coxoutall <- cbind(
-    "Population" = c(title, rep(NA, 4 * 3 - 1)),
+    "Population" = c(title, rep(NA, 5 * 3 - 1)),
     bind_rows(cvdhosp, hfhosp, death)
   )
 }
@@ -161,33 +184,35 @@ allpat6mo <- survmy2(
   title = "All - blanking 6mo"
 )
 
-outpat <- survmy2(
-  data2 = pdata %>% filter(shf_location == "Out-patient"),
-  efvar2 = "shf_ef_cat2",
-  ravar2 = "sos_com_ra",
-  title = "Out-patient"
-)
-outpat6mo <- survmy2(
-  data2 = pdata %>% filter(shf_location == "Out-patient"),
-  efvar2 = "shf_ef_cat2",
-  ravar2 = "sos_com_ra_blank6mo",
-  title = "Out-patient - blanking 6mo"
-)
+# outpat <- survmy2(
+#   data2 = pdata %>% filter(shf_location == "Out-patient"),
+#   efvar2 = "shf_ef_cat2",
+#   ravar2 = "sos_com_ra",
+#   title = "Out-patient"
+# )
+# outpat6mo <- survmy2(
+#   data2 = pdata %>% filter(shf_location == "Out-patient"),
+#   efvar2 = "shf_ef_cat2",
+#   ravar2 = "sos_com_ra_blank6mo",
+#   title = "Out-patient - blanking 6mo"
+# )
+# 
+# inpat <- survmy2(
+#   data2 = pdata %>% filter(shf_location == "In-patient"),
+#   efvar2 = "shf_ef_cat2",
+#   ravar2 = "sos_com_ra",
+#   title = "In-patient"
+# )
+# inpat6mo <- survmy2(
+#   data2 = pdata %>% filter(shf_location == "In-patient"),
+#   efvar2 = "shf_ef_cat2",
+#   ravar2 = "sos_com_ra_blank6mo",
+#   title = "In-patient - blanking 6mo"
+# )
+# 
+# coxoutall <- bind_rows(allpat, allpat6mo, outpat, outpat6mo, inpat, inpat6mo)
 
-inpat <- survmy2(
-  data2 = pdata %>% filter(shf_location == "In-patient"),
-  efvar2 = "shf_ef_cat2",
-  ravar2 = "sos_com_ra",
-  title = "In-patient"
-)
-inpat6mo <- survmy2(
-  data2 = pdata %>% filter(shf_location == "In-patient"),
-  efvar2 = "shf_ef_cat2",
-  ravar2 = "sos_com_ra_blank6mo",
-  title = "In-patient - blanking 6mo"
-)
-
-coxoutall <- bind_rows(allpat, allpat6mo, outpat, outpat6mo, inpat, inpat6mo)
+coxoutall <- bind_rows(allpat, allpat6mo)
 colnames(coxoutall) <- c(
   "Population", "Outcome", "Model",
   rep(c("No RA", "RA"), 2),
@@ -222,33 +247,35 @@ allpat6mo <- survmy2(
   title = "All - blanking 6mo"
 )
 
-outpat <- survmy2(
-  data2 = pdata %>% filter(shf_location == "Out-patient"),
-  efvar2 = "shf_ef_cat",
-  ravar2 = "sos_com_ra",
-  title = "Out-patient"
-)
-outpat6mo <- survmy2(
-  data2 = pdata %>% filter(shf_location == "Out-patient"),
-  efvar2 = "shf_ef_cat",
-  ravar2 = "sos_com_ra_blank6mo",
-  title = "Out-patient - blanking 6mo"
-)
+# outpat <- survmy2(
+#   data2 = pdata %>% filter(shf_location == "Out-patient"),
+#   efvar2 = "shf_ef_cat",
+#   ravar2 = "sos_com_ra",
+#   title = "Out-patient"
+# )
+# outpat6mo <- survmy2(
+#   data2 = pdata %>% filter(shf_location == "Out-patient"),
+#   efvar2 = "shf_ef_cat",
+#   ravar2 = "sos_com_ra_blank6mo",
+#   title = "Out-patient - blanking 6mo"
+# )
+# 
+# inpat <- survmy2(
+#   data2 = pdata %>% filter(shf_location == "In-patient"),
+#   efvar2 = "shf_ef_cat",
+#   ravar2 = "sos_com_ra",
+#   title = "In-patient"
+# )
+# inpat6mo <- survmy2(
+#   data2 = pdata %>% filter(shf_location == "In-patient"),
+#   efvar2 = "shf_ef_cat",
+#   ravar2 = "sos_com_ra_blank6mo",
+#   title = "In-patient - blanking 6mo"
+# )
+# 
+# coxoutall <- bind_rows(allpat, allpat6mo, outpat, outpat6mo, inpat, inpat6mo)
 
-inpat <- survmy2(
-  data2 = pdata %>% filter(shf_location == "In-patient"),
-  efvar2 = "shf_ef_cat",
-  ravar2 = "sos_com_ra",
-  title = "In-patient"
-)
-inpat6mo <- survmy2(
-  data2 = pdata %>% filter(shf_location == "In-patient"),
-  efvar2 = "shf_ef_cat",
-  ravar2 = "sos_com_ra_blank6mo",
-  title = "In-patient - blanking 6mo"
-)
-
-coxoutall <- bind_rows(allpat, allpat6mo, outpat, outpat6mo, inpat, inpat6mo)
+coxoutall <- bind_rows(allpat, allpat6mo)
 colnames(coxoutall) <- c(
   "Population", "Outcome", "Model",
   rep(c("No RA", "RA"), 3),
