@@ -1,0 +1,164 @@
+```{r cortab, cache=cacheon}
+
+cormy <- function(data, efvar, ravar = "sos_com_ra", popname) {
+  levsef <- levels(data %>% pull(!!sym(efvar)))
+
+  out <- data.frame(matrix(NA, ncol = 2 + length(levsef) * 2, nrow = 5))
+
+  out[1, 1] <- popname
+
+  colnames(out) <- c(
+    "Population", "Model",
+    rep(c("Controls", "Cases"), length(levsef))
+  )
+
+  ## no and %
+  out[1, 2] <- "n (%) prior RA"
+
+  npdata <- data %>%
+    group_by(!!sym(efvar), casecontrol) %>%
+    count(!!sym(ravar)) %>%
+    mutate(np = paste0(n, " (", fn(n / sum(n) * 100, 1), "%)")) %>%
+    ungroup() %>%
+    filter(!!sym(ravar) == "Yes")
+
+  out[1, 3:(2 + length(levsef) * 2)] <- npdata$np
+
+  for (i in seq_along(levsef)) {
+    # clog reg regressions
+    ## adj age, sex
+
+    mod <- summary(clogit(formula(paste0("casecontrol == 'Case' ~ ", ravar, " * 
+    relevel(", efvar, ", ref = '", levsef[i], "') + strata(LopNrcase)")),
+      data = data
+    ))
+
+    out[2, 2] <- "Adj age, sex* OR (95% CI), p"
+    out[2, (1 + 2 * i):(2 + 2 * i)] <- c(
+      "ref",
+      paste0(
+        fn(mod$conf.int[1, 1], 1), " (", fn(mod$conf.int[1, 3], 1), "-",
+        fn(mod$conf.int[1, 4], 1), "), ", fn(mod$coefficients[1, 5], dig = 3, p = T)
+      )
+    )
+
+    ## adj IHD
+
+    mod <- summary(clogit(formula(paste0("casecontrol == 'Case' ~ ", ravar, " * 
+    relevel(", efvar, ", ref = '", levsef[i], "') + ", paste(modvars1, collapse = " + "), " + strata(LopNrcase)")),
+      data = data
+    ))
+
+    out[3, 2] <- "Adj age, sex*, IHD OR (95% CI), p"
+    out[3, (1 + 2 * i):(2 + 2 * i)] <- c(
+      "ref",
+      paste0(
+        fn(mod$conf.int[1, 1], 1), " (", fn(mod$conf.int[1, 3], 1), "-",
+        fn(mod$conf.int[1, 4], 1), "), ", fn(mod$coefficients[1, 5], dig = 3, p = T)
+      )
+    )
+
+    ## adj comorbs
+
+    mod <- summary(clogit(formula(paste0(
+      "casecontrol == 'Case' ~ ", ravar, " * 
+    relevel(", efvar, ", ref = '", levsef[i], "') + ",
+      paste(modvars2, collapse = " + "), " + strata(LopNrcase)"
+    )),
+    data = data
+    ))
+
+    out[4, 2] <- "Adj age, sex*, comorbs OR (95% CI), p"
+    out[4, (1 + 2 * i):(2 + 2 * i)] <- c(
+      "ref",
+      paste0(
+        fn(mod$conf.int[1, 1], 1), " (", fn(mod$conf.int[1, 3], 1), "-",
+        fn(mod$conf.int[1, 4], 1), "), ", fn(mod$coefficients[1, 5], dig = 3, p = T)
+      )
+    )
+
+    ## adj comorbs + socioec
+
+    mod <- summary(clogit(formula(paste0(
+      "casecontrol == 'Case' ~ ", ravar, " * 
+    relevel(", efvar, ", ref = '", levsef[i], "') + ",
+      paste(modvars3, collapse = " + "), " + strata(LopNrcase)"
+    )),
+    data = data
+    ))
+
+    out[5, 2] <- "Adj age, sex*, comorbs, socec OR (95% CI), p"
+    out[5, (1 + 2 * i):(2 + 2 * i)] <- c(
+      "ref",
+      paste0(
+        fn(mod$conf.int[1, 1], 1), " (", fn(mod$conf.int[1, 3], 1), "-",
+        fn(mod$conf.int[1, 4], 1), "), ", fn(mod$coefficients[1, 5], dig = 3, p = T)
+      )
+    )
+  }
+  return(out)
+}
+```
+
+```{r cortab2, cache=cacheon, dependson="cortab"}
+allpat <- cormy(
+  data = pdata,
+  efvar = "shf_ef_cat2",
+  ravar = "sos_com_ra",
+  popname = "All"
+)
+allpat6mo <- cormy(
+  data = pdata,
+  efvar = "shf_ef_cat2",
+  ravar = "sos_com_ra_blank6mo",
+  popname = "All - blanking 6mo"
+)
+
+oroutall <- bind_rows(allpat, allpat6mo)
+
+colnames(oroutall) <- c(
+  "Population", "Model",
+  rep(c("Controls", "Cases"), 2)
+)
+
+write.xlsx(oroutall, paste0("./output/tabs/cortab2ef_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+
+footnote(default_kable(
+  oroutall,
+  caption = sanitize_text("Association between incident HF/HF-free controls and prior RA by EF </>=40%")
+) %>%
+  add_header_above(c(" " = 1, " " = 1, "LVEF <40%" = 2, "LVEF =>40%" = 2)),
+symbol = c("Adjusted for age, sex, county of residence by design")
+)
+```
+
+```{r cortab3, cache=cacheon, dependson="cortab"}
+allpat <- cormy(
+  data = pdata,
+  efvar = "shf_ef_cat",
+  ravar = "sos_com_ra",
+  popname = "All"
+)
+allpat6mo <- cormy(
+  data = pdata,
+  efvar = "shf_ef_cat",
+  ravar = "sos_com_ra_blank6mo",
+  popname = "All - blanking 6mo"
+)
+
+oroutall <- bind_rows(allpat, allpat6mo)
+
+colnames(oroutall) <- c(
+  "Population", "Model",
+  rep(c("Controls", "Cases"), 3)
+)
+
+write.xlsx(oroutall, paste0("./output/tabs/cortab3ef_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+
+footnote(default_kable(oroutall,
+  caption = sanitize_text("Association between incident HF/HF-free controls and prior RA by r/mr/pEF")
+) %>%
+  add_header_above(c(" " = 1, " " = 1, "HFrEF" = 2, "HFmrEF" = 2, "HFpEF" = 2)),
+symbol = c("Adjusted for age, sex, county of residence by design")
+)
+```

@@ -1,0 +1,108 @@
+```{r cortaball, cache=cacheon}
+
+cormy <- function(data, ravar = "sos_com_ra", popname) {
+  out <- data.frame(matrix(NA, ncol = 4, nrow = 5))
+
+  out[1, 1] <- popname
+
+  colnames(out) <- c(
+    "Population", "Model",
+    "HF-free controls", "HF"
+  )
+
+  ## no and %
+  out[1, 2] <- "n (%) prior RA"
+
+  npdata <- data %>%
+    group_by(casecontrol) %>%
+    count(!!sym(ravar)) %>%
+    mutate(np = paste0(n, " (", fn(n / sum(n) * 100, 1), "%)")) %>%
+    ungroup() %>%
+    filter(!!sym(ravar) == "Yes")
+
+  out[1, 3:4] <- npdata$np
+
+  # clog reg regressions
+  ## adj age, sex
+
+  mod <- summary(clogit(formula(paste0("casecontrol == 'Case' ~ ", ravar, " + strata(LopNrcase)")),
+    data = data
+  ))
+
+  out[2, 2] <- "Adj age, sex* OR (95% CI), p"
+  out[2, 3:4] <- c(
+    "ref",
+    paste0(
+      fn(mod$conf.int[1, 1], 1), " (", fn(mod$conf.int[1, 3], 1), "-",
+      fn(mod$conf.int[1, 4], 1), "), ", fn(mod$coefficients[1, 5], dig = 3, p = T)
+    )
+  )
+
+  ## adj IHD
+
+  mod <- summary(clogit(formula(paste0("casecontrol == 'Case' ~ ", ravar, " + ", paste(modvars1, collapse = " + "), " + strata(LopNrcase)")),
+    data = data
+  ))
+
+  out[3, 2] <- "Adj age, sex*, IHD OR (95% CI), p"
+  out[3, 3:4] <- c(
+    "ref",
+    paste0(
+      fn(mod$conf.int[1, 1], 1), " (", fn(mod$conf.int[1, 3], 1), "-",
+      fn(mod$conf.int[1, 4], 1), "), ", fn(mod$coefficients[1, 5], dig = 3, p = T)
+    )
+  )
+
+  ## adj comorbs
+
+  mod <- summary(clogit(formula(paste0("casecontrol == 'Case' ~ ", ravar, " + ", paste(modvars2, collapse = " + "), " + strata(LopNrcase)")),
+    data = data
+  ))
+
+  out[4, 2] <- "Adj age, sex*, comorbs OR (95% CI), p"
+  out[4, 3:4] <- c(
+    "ref",
+    paste0(
+      fn(mod$conf.int[1, 1], 1), " (", fn(mod$conf.int[1, 3], 1), "-",
+      fn(mod$conf.int[1, 4], 1), "), ", fn(mod$coefficients[1, 5], dig = 3, p = T)
+    )
+  )
+
+  ## adj comorbs + socioec
+
+  mod <- summary(clogit(formula(paste0("casecontrol == 'Case' ~ ", ravar, " + ", paste(modvars3, collapse = " + "), " + strata(LopNrcase)")),
+    data = data
+  ))
+
+  out[5, 2] <- "Adj age, sex*, comorbs, socec OR (95% CI), p"
+  out[5, 3:4] <- c(
+    "ref",
+    paste0(
+      fn(mod$conf.int[1, 1], 1), " (", fn(mod$conf.int[1, 3], 1), "-",
+      fn(mod$conf.int[1, 4], 1), "), ", fn(mod$coefficients[1, 5], dig = 3, p = T)
+    )
+  )
+  return(out)
+}
+
+allpat <- cormy(
+  data = pdata,
+  ravar = "sos_com_ra",
+  popname = "All"
+)
+allpat6mo <- cormy(
+  data = pdata,
+  ravar = "sos_com_ra_blank6mo",
+  popname = "All - blanking 6mo"
+)
+
+oroutall <- bind_rows(allpat, allpat6mo)
+
+write.xlsx(oroutall, paste0("./output/tabs/cortaball_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+
+footnote(default_kable(oroutall,
+  caption = sanitize_text("Association between incident HF/HF-free controls and prior RA")
+),
+symbol = c("Adjusted for age, sex, county of residence by design")
+)
+```
