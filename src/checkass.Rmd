@@ -81,7 +81,6 @@ testpat <- cox.zph(mod)
 print((sig <- testpat$table[testpat$table[, 3] < 0.05, ]))
 
 plot(testpat)
-
 ```
 
 ```{r nonpropplot, cache=cacheon, fig.cap = "\\label{fig:nonpropplot}Visualizing non-proportional hazards for EF"}

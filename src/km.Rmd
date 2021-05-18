@@ -51,7 +51,7 @@ kmfunc <- function(data, time, event, eventname, yposplus = rep(0, 4)) {
 }
 ```
 
-```{r kmcvdeathhfstrokemihospall, fig.cap="1-KM CVD/First HF/stroke/MI hospitalization - All", cache=cacheon, dependson="km"}
+```{r kmcvdeathhfstrokemihospall, fig.cap="1-KM CVD/First HF/stroke/MI hospitalization", cache=cacheon, dependson="km"}
 kmfunc(
   data = pdata %>% filter(casecontrol == "Case"),
   time = "sos_outtime_deathcvhosphfstrokemi", event = "sos_out_deathcvhosphfstrokemi",
@@ -60,16 +60,16 @@ kmfunc(
 )
 ```
 
-```{r kmhfhospall, fig.cap="1-KM First HF hospitalization - All", cache=cacheon, dependson="km"}
+```{r kmhfhospall, fig.cap="1-KM First HF hospitalization", cache=cacheon, dependson="km"}
 kmfunc(
   data = pdata %>% filter(casecontrol == "Case"),
-  time = "sos_outtime_hosphf", event = "sos_out_hosphf", 
+  time = "sos_outtime_hosphf", event = "sos_out_hosphf",
   eventname = "First HF hospitalization (%)",
   yposplus = c(0.0, 0, -0.0, 0)
 )
 ```
 
-```{r kmdeathall, fig.cap="1-KM Death - All", cache=cacheon, dependson="km"}
+```{r kmdeathall, fig.cap="1-KM Death", cache=cacheon, dependson="km"}
 kmfunc(
   data = pdata %>% filter(casecontrol == "Case"),
   time = "sos_outtime_death", event = "sos_out_death", eventname = "Death (%)",

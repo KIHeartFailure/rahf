@@ -196,7 +196,7 @@ allpat6mo <- survmy2(
 #   ravar2 = "sos_com_ra_blank6mo",
 #   title = "Out-patient - blanking 6mo"
 # )
-# 
+#
 # inpat <- survmy2(
 #   data2 = pdata %>% filter(shf_location == "In-patient"),
 #   efvar2 = "shf_ef_cat2",
@@ -209,7 +209,7 @@ allpat6mo <- survmy2(
 #   ravar2 = "sos_com_ra_blank6mo",
 #   title = "In-patient - blanking 6mo"
 # )
-# 
+#
 # coxoutall <- bind_rows(allpat, allpat6mo, outpat, outpat6mo, inpat, inpat6mo)
 
 coxoutall <- bind_rows(allpat, allpat6mo)
@@ -259,7 +259,7 @@ allpat6mo <- survmy2(
 #   ravar2 = "sos_com_ra_blank6mo",
 #   title = "Out-patient - blanking 6mo"
 # )
-# 
+#
 # inpat <- survmy2(
 #   data2 = pdata %>% filter(shf_location == "In-patient"),
 #   efvar2 = "shf_ef_cat",
@@ -272,7 +272,7 @@ allpat6mo <- survmy2(
 #   ravar2 = "sos_com_ra_blank6mo",
 #   title = "In-patient - blanking 6mo"
 # )
-# 
+#
 # coxoutall <- bind_rows(allpat, allpat6mo, outpat, outpat6mo, inpat, inpat6mo)
 
 coxoutall <- bind_rows(allpat, allpat6mo)

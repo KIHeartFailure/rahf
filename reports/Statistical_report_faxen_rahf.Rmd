@@ -81,7 +81,7 @@ By excluding cases with previous diagnosis of HF in NPR/SwedeHF the aim is to ke
 aim to discuss directionality. 
 
 EF is recorded in SwedeHF. The primary analysis will be on EF </=> 40% due to the small number of patients 
-with previous RA. Analyses EF <30% (rEF), 40-49% (mrEF) and =>50% (pEF) will also be presented.  
+with previous RA. Analyses EF <40% (rEF), 40-49% (mrEF) and =>50% (pEF) will also be presented.  
 
 ## HF-free controls
 
@@ -91,14 +91,14 @@ Patient registry (ICD-10: I110, I130, I132, I255, I420, I423, 1425-9, I43, I50,
 J81, K761, R57, ICD-9: 414W, 425E-H, 425W, 425X, 428) or SwedeHF, at the end 
 of the year of the index date for the case and matched by gender, year of birth 
 and county of residence at index. For posts with age >= 90 years, controls were 
-only matched by gender and year of birth due to the smaller available number of 
+only matched by gender and year of birth due to the smaller number of available 
 controls. The selection of controls was performed without replacement.
 
 ## Definition of RA 
 
-Two visits (spec öppenvård) with HDIA M05, M06, where at least on of the visits 
+Two visits (spec öppenvård) with HDIA M05, M06, where at least one of the visits 
 should be at an internal medicine/reumatological ward (MVO 101, 131). 
-The onset of RA diagnosis is then defined to the second visit. If a visit with 
+The onset of RA diagnosis is then defined as the second visit. If a visit with 
 HDIA M073, L405, M45, M46, M32 occurs prior to the second visit this patient 
 is not defined as a RA. 
 
@@ -144,8 +144,15 @@ Adjustment is performed for age and sex in all models and also for:
 
 The association between incident HF and prior RA is investigated using a 
 conditional logistic regression where the outcome is if a person 
-is a HF case or a control. The matched "pairs" are included as a strata variable and 
-RA as main effect. In this analysis both cases and controls are included. 
+is a HF case or a control and 
+RA as main effect. The matched "pairs" are included as a strata variable. 
+In this analysis both cases and controls are included. 
+
+```{r, child = "../src/cortaball.Rmd"}
+
+```
+
+\clearpage
 
 ### Association between HF/HF-free controls and prior RA by EF
 
@@ -153,6 +160,10 @@ The association between incident HF and prior RA is investigated using a
 conditional logistic regression where the outcome is if a person 
 is a HF case or a control. The matched "pairs" are included as a strata variable and 
 EF and RA as main effects and with an interaction term. In this analysis both cases and controls are included. 
+
+```{r, child = "../src/cortab.Rmd"}
+
+```
 
 \clearpage
 

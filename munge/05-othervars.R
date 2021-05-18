@@ -1,5 +1,7 @@
 pdata <- pdata %>%
   mutate(
+    casecontrol = relevel(casecontrol, ref = "Control"),
+
     shf_ef_cat = factor(case_when(
       shf_ef == ">=50" ~ 3,
       shf_ef == "40-49" ~ 2,
@@ -38,18 +40,18 @@ pdata <- pdata %>%
       TRUE ~ "No"
     ),
     sos_outtime_deathcvhosphfstrokemi = pmin(sos_outtime_hospstrokemi, sos_outtime_hosphf),
-    
+
     ## censor at 10 yrs
     sos_out_deathcvhosphfstrokemi = if_else(sos_outtime_deathcvhosphfstrokemi <= 365.25 * 10, as.character(sos_out_deathcvhosphfstrokemi), "No"),
     sos_outtime_deathcvhosphfstrokemi = pmin(sos_outtime_deathcvhosphfstrokemi, 365.25 * 10),
-    
+
     sos_out_hosphf = if_else(sos_outtime_hosphf <= 365.25 * 10, as.character(sos_out_hosphf), "No"),
     sos_outtime_hosphf = pmin(sos_outtime_hosphf, 365.25 * 10),
-    
+
     sos_out_death = if_else(sos_outtime_death <= 365.25 * 10, as.character(sos_out_death), "No"),
     sos_outtime_death = pmin(sos_outtime_death, 365.25 * 10)
   )
-    
+
 
 # income
 

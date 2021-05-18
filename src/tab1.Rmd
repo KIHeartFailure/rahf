@@ -24,10 +24,10 @@ tab1func <- function(data) {
 ```
 
 ```{r tab12, cache=cacheon, dependson="tab1"}
-tab1 <- tab1func(data = pdata %>% filter(shf_ef_cat2 == "LVEF <40%", casecontrol == "Case"))
-tab2 <- tab1func(data = pdata %>% filter(shf_ef_cat2 == "LVEF <40%", casecontrol == "Control"))
-tab3 <- tab1func(data = pdata %>% filter(shf_ef_cat2 == "LVEF =>40%", casecontrol == "Case"))
-tab4 <- tab1func(data = pdata %>% filter(shf_ef_cat2 == "LVEF =>40%", casecontrol == "Control"))
+tab1 <- tab1func(data = pdata %>% filter(shf_ef_cat2 == "LVEF <40%", casecontrol == "Control"))
+tab2 <- tab1func(data = pdata %>% filter(shf_ef_cat2 == "LVEF <40%", casecontrol == "Case"))
+tab3 <- tab1func(data = pdata %>% filter(shf_ef_cat2 == "LVEF =>40%", casecontrol == "Control"))
+tab4 <- tab1func(data = pdata %>% filter(shf_ef_cat2 == "LVEF =>40%", casecontrol == "Case"))
 
 taball <- Reduce(
   function(...) {
@@ -104,9 +104,9 @@ footnote(
     escape = FALSE
   ) %>%
     landscape() %>%
-    add_header_above(c(" " = 1, "Case" = 3, "Control" = 3, "Case" = 3, "Control" = 3)) %>%
+    add_header_above(c(" " = 1, "HF-fee controls" = 3, "HF" = 3, "HF-fee controls" = 3, "HF" = 3)) %>%
     add_header_above(c(" " = 1, "LVEF <40%" = 6, "LVEF =>40%" = 6)),
-    general = c(
+  general = c(
     "Categorical variables are presented with n (%) and tested with chi-square test and continuous variables with median [q1-q3] and tested with Kruskal-Wallis test"
   ),
   symbol = c(
@@ -122,12 +122,12 @@ footnote(
 ```
 
 ```{r tab13, cache=cacheon, dependson="tab1"}
-tab1 <- tab1func(data = pdata %>% filter(shf_ef_cat == "HFrEF", casecontrol == "Case"))
-tab2 <- tab1func(data = pdata %>% filter(shf_ef_cat == "HFrEF", casecontrol == "Control"))
-tab3 <- tab1func(data = pdata %>% filter(shf_ef_cat == "HFmrEF", casecontrol == "Case"))
-tab4 <- tab1func(data = pdata %>% filter(shf_ef_cat == "HFmrEF", casecontrol == "Control"))
-tab5 <- tab1func(data = pdata %>% filter(shf_ef_cat == "HFpEF", casecontrol == "Case"))
-tab6 <- tab1func(data = pdata %>% filter(shf_ef_cat == "HFpEF", casecontrol == "Control"))
+tab1 <- tab1func(data = pdata %>% filter(shf_ef_cat == "HFrEF", casecontrol == "Control"))
+tab2 <- tab1func(data = pdata %>% filter(shf_ef_cat == "HFrEF", casecontrol == "Case"))
+tab3 <- tab1func(data = pdata %>% filter(shf_ef_cat == "HFmrEF", casecontrol == "Control"))
+tab4 <- tab1func(data = pdata %>% filter(shf_ef_cat == "HFmrEF", casecontrol == "Case"))
+tab5 <- tab1func(data = pdata %>% filter(shf_ef_cat == "HFpEF", casecontrol == "Control"))
+tab6 <- tab1func(data = pdata %>% filter(shf_ef_cat == "HFpEF", casecontrol == "Case"))
 
 taball <- Reduce(
   function(...) {
@@ -204,9 +204,9 @@ footnote(
     escape = FALSE
   ) %>%
     landscape() %>%
-    add_header_above(c(" " = 1, "Case" = 3, "Control" = 3, "Case" = 3, "Control" = 3, "Case" = 3, "Control" = 3)) %>%
+    add_header_above(c(" " = 1, "HF-fee controls" = 3, "HF" = 3, "HF-fee controls" = 3, "HF" = 3, "HF-fee controls" = 3, "HF" = 3)) %>%
     add_header_above(c(" " = 1, "HFrEF" = 6, "HFmrEF" = 6, "HFpEF" = 6)),
-    general = c(
+  general = c(
     "Categorical variables are presented with n (%) and tested with chi-square test and continuous variables with median [q1-q3] and tested with Kruskal-Wallis test"
   ),
   symbol = c(
@@ -220,4 +220,3 @@ footnote(
   threeparttable = TRUE
 )
 ```
-
