@@ -172,13 +172,13 @@ survmy2 <- function(data2, efvar2, ravar2, title) {
 
 ```{r coxtab2, cache=cacheon, dependson="coxtab"}
 allpat <- survmy2(
-  data2 = pdata,
+  data2 = pdata %>% filter(casecontrol == "Case"),
   efvar2 = "shf_ef_cat2",
   ravar2 = "sos_com_ra",
   title = "All"
 )
 allpat6mo <- survmy2(
-  data2 = pdata,
+  data2 = pdata %>% filter(casecontrol == "Case"),
   efvar2 = "shf_ef_cat2",
   ravar2 = "sos_com_ra_blank6mo",
   title = "All - blanking 6mo"
@@ -235,13 +235,13 @@ symbol = c(
 
 ```{r coxtab3, cache=cacheon, dependson="coxtab"}
 allpat <- survmy2(
-  data2 = pdata,
+  data2 = pdata %>% filter(casecontrol == "Case"),
   efvar2 = "shf_ef_cat",
   ravar2 = "sos_com_ra",
   title = "All"
 )
 allpat6mo <- survmy2(
-  data2 = pdata,
+  data2 = pdata %>% filter(casecontrol == "Case"),
   efvar2 = "shf_ef_cat",
   ravar2 = "sos_com_ra_blank6mo",
   title = "All - blanking 6mo"

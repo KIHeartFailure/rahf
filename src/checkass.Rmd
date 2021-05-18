@@ -7,7 +7,7 @@ modlm <- glm(formula(paste0(
   paste(modvars2, collapse = " + ")
 )),
 family = "binomial",
-data = pdata
+data = pdata %>% filter(casecontrol == "Case")
 )
 
 ## Outliers --------------------------------------------------------------
@@ -69,24 +69,12 @@ checkassfunc(
 checkassfunc(
   time = "sos_outtime_deathcvhosphfstrokemi",
   event = "sos_out_deathcvhosphfstrokemi",
-  data = pdata %>% filter(shf_location == "In-patient")
-)
-checkassfunc(
-  time = "sos_outtime_deathcvhosphfstrokemi",
-  event = "sos_out_deathcvhosphfstrokemi",
-  data = pdata %>% filter(shf_location == "Out-patient")
-)
-
-
-checkassfunc(
-  time = "sos_outtime_deathcvhosphfstrokemi",
-  event = "sos_out_deathcvhosphfstrokemi",
   plotra = F
 )
 
 
 mod <- coxph(Surv(sos_outtime_deathcvhosphfstrokemi, sos_out_deathcvhosphfstrokemi == "Yes") ~ shf_ef_cat2,
-  data = pdata
+  data = pdata %>% filter(casecontrol == "Case")
 )
 
 testpat <- cox.zph(mod)
@@ -98,7 +86,7 @@ plot(testpat)
 
 ```{r nonpropplot, cache=cacheon, fig.cap = "\\label{fig:nonpropplot}Visualizing non-proportional hazards for EF"}
 fit <- survfit(Surv(sos_outtime_deathcvhosphfstrokemi, sos_out_deathcvhosphfstrokemi == "Yes") ~ shf_ef_cat2,
-  data = pdata
+  data = pdata %>% filter(casecontrol == "Case")
 )
 
 plot(fit,

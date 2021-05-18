@@ -51,7 +51,7 @@ cacheon <- TRUE
 
 ## Data source
 
-SHFDB3, https://kiheartfailure.github.io/shfdb3/, v 3.2.2. 
+SHFDB3, https://kiheartfailure.github.io/shfdb3/, v 3.2.3. 
 
 ## Inclusion/exclusion criteria
 
@@ -60,16 +60,17 @@ footnote(
   default_kable(flow, caption = "Flowchart"),
   symbol = "A period of 14 days is allowed between first registration in NPR and registration in SwedeHF."
 )
+default_kable(ncontrols, caption = "Number of controls / case", scale_down = F)
 ```
 
 First patient in: `r min(pdata$shf_indexdtm)` and last patient in: `r max(pdata$shf_indexdtm)`.  
 
-The median age (IQR) is `r pdata %>% summarise(med = fn(median(shf_age), dig = 1),
+Among cases the median age (IQR) is `r pdata %>% filter(casecontrol == "Case") %>% summarise(med = fn(median(shf_age), dig = 1),
                                              q1 = fn(quantile(shf_age, probs = 0.25), dig = 1),
                                              q3 = fn(quantile(shf_age, probs = 0.75), dig = 1)) %>%
                                    mutate(out = paste0(med, " (", q1, "-", q3, ")")) %>%
                                    pull(out)` and 
-`r pdata %>% count(shf_sex) %>%
+`r pdata %>% filter(casecontrol == "Case") %>% count(shf_sex) %>%
   mutate(perc = fn(n / sum(n) * 100, 1)) %>%
   filter(shf_sex == "Female") %>%
   pull(perc)`% females.    
@@ -81,6 +82,17 @@ aim to discuss directionality.
 
 EF is recorded in SwedeHF. The primary analysis will be on EF </=> 40% due to the small number of patients 
 with previous RA. Analyses EF <30% (rEF), 40-49% (mrEF) and =>50% (pEF) will also be presented.  
+
+## HF-free controls
+
+Eligible controls were persons without re-used and changed Swedish personal 
+identity numbers (PINs) and free of HF, defined either in the National 
+Patient registry (ICD-10: I110, I130, I132, I255, I420, I423, 1425-9, I43, I50, 
+J81, K761, R57, ICD-9: 414W, 425E-H, 425W, 425X, 428) or SwedeHF, at the end 
+of the year of the index date for the case and matched by gender, year of birth 
+and county of residence at index. For posts with age >= 90 years, controls were 
+only matched by gender and year of birth due to the smaller available number of 
+controls. The selection of controls was performed without replacement.
 
 ## Definition of RA 
 
@@ -119,10 +131,6 @@ is applied in the main analysis. As a consistency analysis a blanking period of 
 
 ## Association between incident HF and prior RA
 
-The association between incident HF and prior RA is investigated 
-using logistic regression (EF 2 groups) and multinomial regression (EF 3 groups) 
-where the outcome is EF group. 
-
 Adjustment is performed for variables that are present at the 
 time of the incident HF. 
 
@@ -131,6 +139,28 @@ Adjustment is performed for age and sex in all models and also for:
 - `r paste0(modvars1, collapse = ", ")`, 
 - `r paste0(modvars2, collapse = ", ")`,
 - `r paste0(modvars3, collapse = ", ")`.
+
+### Association between HF/HF-free controls and prior RA
+
+The association between incident HF and prior RA is investigated using a 
+conditional logistic regression where the outcome is if a person 
+is a HF case or a control. The matched "pairs" are included as a strata variable and 
+RA as main effect. In this analysis both cases and controls are included. 
+
+### Association between HF/HF-free controls and prior RA by EF
+
+The association between incident HF and prior RA is investigated using a 
+conditional logistic regression where the outcome is if a person 
+is a HF case or a control. The matched "pairs" are included as a strata variable and 
+EF and RA as main effects and with an interaction term. In this analysis both cases and controls are included. 
+
+\clearpage
+
+### Association between HF and prior RA
+
+The association between incident HF and prior RA is investigated 
+using logistic regression (EF 2 groups) and multinomial regression (EF 3 groups) 
+where the outcome is EF group. In this analysis only cases are included. 
 
 ### Assumptions
 
@@ -146,7 +176,7 @@ with the variance inflation factor. => No action deemed necessary.
 
 ## Outcomes after HF
 
-The patients with prior RA are compared to those without prior RA. 
+The patients with prior RA are compared to those without prior RA. For this analysis only the cases are selected. 
 
 The following outcomes are considered: 
 
@@ -164,12 +194,13 @@ Data are censored at 2019-12-31, death (for outcomes not including all-cause mor
 (=lost to follow-up in the national Swedish registries) or 10 years after index, whichever came first. 
 
 The median (min-max) follow-up is 
-`r pdata %>% summarise(med = fn(median(sos_outtime_death / 365.25 * 12), dig = 1),
+`r pdata %>% filter(casecontrol == "Case") %>% summarise(med = fn(median(sos_outtime_death / 365.25 * 12), dig = 1),
                                              min = fn(min(sos_outtime_death / 365.25 * 12), dig = 1),
                                              max = fn(max(sos_outtime_death / 365.25 * 12), dig = 1)) %>%
                                    mutate(out = paste0(med, " (", min, "-", max, ")")) %>%
                                    pull(out)` months for a total of 
-                                   `r pdata %>% summarise(sumpy = fn(sum(sos_outtime_death) / 365.25, dig = 0)) %>%
+                                   `r pdata %>% filter(casecontrol == "Case") %>% 
+                                   summarise(sumpy = fn(sum(sos_outtime_death) / 365.25, dig = 0)) %>%
                                    pull(sumpy)` patient-years of follow-up.
 
 

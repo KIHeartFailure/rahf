@@ -2,7 +2,7 @@
 
 # Inclusion/exclusion criteria --------------------------------------------------------
 
-pdata <- rsdata322 %>%
+pdata <- rsdata323 %>%
   filter(casecontrol == "Case")
 
 flow <- c("Number of posts (cases) in SHFDB3", nrow(pdata))
@@ -31,7 +31,33 @@ pdata <- pdata %>%
   filter(!is.na(shf_ef))
 flow <- rbind(flow, c("No missing EF", nrow(pdata)))
 
-flow <- rbind(flow, c(".  whereof out-patients", nrow(pdata %>% filter(shf_location == "Out-patient"))))
-flow <- rbind(flow, c(".  whereof in-patients", nrow(pdata %>% filter(shf_location == "In-patient"))))
+pdata <- pdata %>%
+  filter(ncontrols >= 1)
+flow <- rbind(flow, c(">= 1 control", nrow(pdata)))
 
 colnames(flow) <- c("Criteria", "N")
+
+# Add controls ------------------------------------------------------------
+
+pdatacontrols <- inner_join(pdata %>%
+  select(LopNr, shf_ef, shf_indexdtm, shf_location),
+rsdata323 %>%
+  filter(casecontrol == "Control") %>%
+  select(-shf_ef, -shf_location),
+by = c("LopNr" = "LopNrcase", "shf_indexdtm")
+) %>%
+  rename(
+    LopNr = LopNr.y,
+    LopNrcase = LopNr
+  )
+
+pdata <- bind_rows(
+  pdata,
+  pdatacontrols
+)
+
+ncontrols <- pdata %>%
+  filter(casecontrol == "Case") %>%
+  count(ncontrols)
+
+names(ncontrols) <- c("Location", "No controls", "No cases")

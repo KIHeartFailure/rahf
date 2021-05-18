@@ -112,12 +112,12 @@ ormy <- function(data, ravar = "sos_com_ra", popname) {
 }
 
 allpat <- ormy(
-  data = pdata,
+  data = pdata %>% filter(casecontrol == "Case"),
   ravar = "sos_com_ra",
   popname = "All"
 )
 allpat6mo <- ormy(
-  data = pdata,
+  data = pdata %>% filter(casecontrol == "Case"),
   ravar = "sos_com_ra_blank6mo",
   popname = "All - blanking 6mo"
 )
@@ -281,12 +281,12 @@ mormy <- function(data, ravar = "sos_com_ra", popname) {
 }
 
 allpat <- mormy(
-  data = pdata,
+  data = pdata %>% filter(casecontrol == "Case"),
   ravar = "sos_com_ra",
   popname = "All"
 )
 allpat6mo <- mormy(
-  data = pdata,
+  data = pdata %>% filter(casecontrol == "Case"),
   ravar = "sos_com_ra_blank6mo",
   popname = "All - blanking 6mo"
 )

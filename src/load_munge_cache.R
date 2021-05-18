@@ -18,6 +18,7 @@ ProjectTemplate::cache("modvars2")
 ProjectTemplate::cache("modvars3")
 
 ProjectTemplate::cache("flow")
+ProjectTemplate::cache("ncontrols")
 
 ProjectTemplate::cache("pdata")
 ProjectTemplate::cache("metaout")
