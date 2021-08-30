@@ -41,15 +41,27 @@ pdata <- pdata %>%
     ),
     sos_outtime_deathcvhosphfstrokemi = pmin(sos_outtime_hospstrokemi, sos_outtime_hosphf),
 
-    ## censor at 10 yrs
-    sos_out_deathcvhosphfstrokemi = if_else(sos_outtime_deathcvhosphfstrokemi <= 365.25 * 10, as.character(sos_out_deathcvhosphfstrokemi), "No"),
-    sos_outtime_deathcvhosphfstrokemi = pmin(sos_outtime_deathcvhosphfstrokemi, 365.25 * 10),
+    ## censor at 5 yrs
+    sos_out_deathcvhosphfstrokemi = if_else(sos_outtime_deathcvhosphfstrokemi <= 365.25 * 5, as.character(sos_out_deathcvhosphfstrokemi), "No"),
+    sos_outtime_deathcvhosphfstrokemi = pmin(sos_outtime_deathcvhosphfstrokemi, 365.25 * 5),
 
-    sos_out_hosphf = if_else(sos_outtime_hosphf <= 365.25 * 10, as.character(sos_out_hosphf), "No"),
-    sos_outtime_hosphf = pmin(sos_outtime_hosphf, 365.25 * 10),
+    sos_out_hosphf = if_else(sos_outtime_hosphf <= 365.25 * 5, as.character(sos_out_hosphf), "No"),
+    sos_outtime_hosphf = pmin(sos_outtime_hosphf, 365.25 * 5),
 
-    sos_out_death = if_else(sos_outtime_death <= 365.25 * 10, as.character(sos_out_death), "No"),
-    sos_outtime_death = pmin(sos_outtime_death, 365.25 * 10)
+    sos_out_death = if_else(sos_outtime_death <= 365.25 * 5, as.character(sos_out_death), "No"),
+    sos_outtime_death = pmin(sos_outtime_death, 365.25 * 5),
+
+    # comp risk
+    sos_out_deathcvhosphfstrokemi_cr = create_crevent(sos_out_deathcvhosphfstrokemi, sos_out_death),
+    sos_out_hosphf_cr = create_crevent(sos_out_hosphf, sos_out_death),
+
+    # merge ef and ra to one variable for cuminc curve
+    efra = case_when(
+      shf_ef_cat2 == "LVEF <40%" & sos_com_ra == "No" ~ "<40% No",
+      shf_ef_cat2 == "LVEF <40%" & sos_com_ra == "Yes" ~ "<40% Yes",
+      shf_ef_cat2 == "LVEF =>40%" & sos_com_ra == "No" ~ ">=40% No",
+      shf_ef_cat2 == "LVEF =>40%" & sos_com_ra == "Yes" ~ ">=40% Yes"
+    )
   )
 
 

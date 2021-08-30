@@ -196,13 +196,13 @@ The following outcomes are considered:
 - All-cause mortality
 
 Incidence per 1000 py is calculated with 95% Poisson confidence intervals. 
-The outcomes are presented with 1-KM curves. 
+The outcomes are presented with 1-KM curves for all-cause mortality and cumulative incidence curves for the other outcomes. 
 Cox proportional hazards regressions are used to evaluate the association 
 between prior RA and the respective outcomes. The interaction between 
 prior RA and EF is included in the model and adjustment performed on variables that are present at the 
 time of the incident HF for the same variables as in the previous models. 
 Data are censored at 2019-12-31, death (for outcomes not including all-cause mortality), emigration from Sweden 
-(=lost to follow-up in the national Swedish registries) or 10 years after index, whichever came first. 
+(=lost to follow-up in the national Swedish registries) or 5 years after index, whichever came first. 
 
 The median (min-max) follow-up is 
 `r pdata %>% filter(casecontrol == "Case") %>% summarise(med = fn(median(sos_outtime_death / 365.25 * 12), dig = 1),
@@ -218,14 +218,7 @@ The median (min-max) follow-up is
 ### Assumptions
 
 The proportional hazards assumption was investigated using the scaled Schoenfeld 
-residuals (cox.zph in [@survival-package]). Signs of non-proportional hazards were 
-shown for EF group, driven mainly by the in-patient population were higher EF 
-initially shows lower hazard but after approximately 2 years the difference 
-between EF starts to decrease. See Figure \ref{fig:nonpropplot}. 
-
-```{r, child = "../src/checkass.Rmd"}
-
-```
+residuals (cox.zph in [@survival-package]). No action was deemed necessary. 
 
 \clearpage
 \newpage

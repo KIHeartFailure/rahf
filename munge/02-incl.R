@@ -60,4 +60,4 @@ ncontrols <- pdata %>%
   filter(casecontrol == "Case") %>%
   count(ncontrols)
 
-names(ncontrols) <- c("Location", "No controls", "No cases")
+names(ncontrols) <- c("No controls", "No cases")

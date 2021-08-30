@@ -1,41 +1,66 @@
 ```{r km, cache=cacheon}
 
-kmfunc <- function(data, time, event, eventname, yposplus = rep(0, 4)) {
-  fit <- survfit(formula(paste0("Surv(", time, ",", event, "=='Yes') ~ shf_ef_cat2 + sos_com_ra")),
+kmfunc <- function(data, time, event, eventcr = NULL, eventname, yposplus = rep(0, 4)) {
+  fits <- survfit(formula(paste0("Surv(", time, ",", event, "=='Yes') ~ shf_ef_cat2 + sos_com_ra")),
     data = data
-  )
+  ) # needed also for cuminc for n at risk
 
-  ## logrank
-  # sd <- survdiff(formula(paste0("Surv(", time, ",", event, "=='Yes') ~ shf_ef_cat + sos_com_ra")),
-  #  data = data %>% filter(casecontrol == "Case")
-  # )
+  if (!is.null(eventcr)) {
+    fit <- cuminc(
+      ftime = data %>% pull(!!sym(time)),
+      fstatus = data %>% pull(!!sym(eventcr)),
+      cencode = 0,
+      group = data %>% pull(efra)
+    )
 
-  # p <- dF(pchisq(sd$chisq, length(sd$n) - 1, lower.tail = FALSE), dig = 3, p = TRUE)
+    # c(bottom, left, top, right)
+    par(mar = c(8, 8, 1, 6.7) + 0.1)
 
-  # c(bottom, left, top, right)
-  par(mar = c(4, 6, 1, 8) + 0.1)
-  plots <- plot(fit,
-    fun = "event",
-    ylab = eventname,
-    xscale = 365,
-    yscale = 100,
-    col = rep(global_kicols[1:2], each = 2),
-    mark.time = FALSE,
-    bty = "n",
-    xlim = c(0, 5 * 365),
-    ylim = c(0, 1),
-    xlab = "Years",
-    axes = F,
-    lwd = 1.5,
-    lty = c(1, 2),
-    xaxs = "i", yaxs = "i"
-  )
+    plot(fit[1:4],
+      ylab = eventname,
+      col = rep(global_kicols[1:2], each = 2),
+      wh = c(1110, 1110),
+      xlim = c(0, 5 * 365),
+      ylim = c(0, 1),
+      xlab = "Years",
+      axes = F,
+      lwd = 1.5,
+      lty = c(1, 2, 1, 2),
+      xaxs = "i", yaxs = "i"
+    )
+  } else {
+
+
+    # c(bottom, left, top, right)
+    par(mar = c(8, 8, 1, 6.7) + 0.1)
+    plots <- plot(fits,
+      fun = "event",
+      ylab = eventname,
+      xscale = 365,
+      yscale = 100,
+      col = rep(global_kicols[1:2], each = 2),
+      mark.time = FALSE,
+      bty = "n",
+      xlim = c(0, 5 * 365),
+      ylim = c(0, 1),
+      xlab = "Years",
+      axes = F,
+      lwd = 1.5,
+      lty = c(1, 2),
+      xaxs = "i", yaxs = "i"
+    )
+  }
 
   axis(2, seq(0, 1, 0.25), seq(0, 100, 25), las = 2)
   axis(1, at = seq(0, 5, 1) * 365, seq(0, 5, 1))
 
-  ypos <- 1 - summary(fit, 5 * 365)$surv
-  ytext <- paste0(rep(levels(pdata$shf_ef_cat2), each = 2), "/", rep(c("No RA", "RA"), 2))
+  if (!is.null(eventcr)) {
+    ypos <- timepoints(fit[1:4], 364 * 5)$est
+  } else {
+    ypos <- 1 - summary(fits, 364 * 5)$surv
+  }
+
+  ytext <- paste0(rep(c("EF<40%", "EF>=40%"), each = 2), ", ", rep(c("No RA", "RA"), 2))
 
   ylabs <- bind_cols(ypos = ypos + yposplus, ytext = ytext)
 
@@ -47,25 +72,41 @@ kmfunc <- function(data, time, event, eventname, yposplus = rep(0, 4)) {
     las = 1
   )
 
-  # text(2 * 365, 0.75, paste0("Log-rank p = ", p), pos = 4)
+  mtext("No. at risk", side = 1, line = 3, at = -720, adj = 0, cex = 1)
+
+  mtext("EF<40%, No RA", side = 1, line = 4, at = -700, adj = 0, cex = 1)
+  mtext("EF<40%, RA", side = 1, line = 5, at = -700, adj = 0, cex = 1)
+  mtext("EF>=40%, No RA", side = 1, line = 6, at = -700, adj = 0, cex = 1)
+  mtext("EF>=40%, RA", side = 1, line = 7, at = -700, adj = 0, cex = 1)
+
+  nrisk <- summary(fits, seq(0, 5, 1) * 365)$n.risk
+
+  axis(1, at = seq(0, 5, 1) * 365, labels = nrisk[1:6], line = 3, tick = FALSE, cex.axis = 1)
+  axis(1, at = seq(0, 5, 1) * 365, labels = nrisk[7:12], line = 4, tick = FALSE, cex.axis = 1)
+  axis(1, at = seq(0, 5, 1) * 365, labels = nrisk[13:18], line = 5, tick = FALSE, cex.axis = 1)
+  axis(1, at = seq(0, 5, 1) * 365, labels = nrisk[19:24], line = 6, tick = FALSE, cex.axis = 1)
 }
 ```
 
 ```{r kmcvdeathhfstrokemihospall, fig.cap="1-KM CVD/First HF/stroke/MI hospitalization", cache=cacheon, dependson="km"}
 kmfunc(
   data = pdata %>% filter(casecontrol == "Case"),
-  time = "sos_outtime_deathcvhosphfstrokemi", event = "sos_out_deathcvhosphfstrokemi",
+  time = "sos_outtime_deathcvhosphfstrokemi",
+  event = "sos_out_deathcvhosphfstrokemi",
+  eventcr = "sos_out_deathcvhosphfstrokemi_cr",
   eventname = "CVD/First HF/stroke/MI hospitalization (%)",
-  yposplus = c(0.01, 0, 0.0, -0.0)
+  yposplus = c(0.0, 0, 0.0, 0.0)
 )
 ```
 
 ```{r kmhfhospall, fig.cap="1-KM First HF hospitalization", cache=cacheon, dependson="km"}
 kmfunc(
   data = pdata %>% filter(casecontrol == "Case"),
-  time = "sos_outtime_hosphf", event = "sos_out_hosphf",
+  time = "sos_outtime_hosphf",
+  event = "sos_out_hosphf",
+  eventcr = "sos_out_hosphf_cr",
   eventname = "First HF hospitalization (%)",
-  yposplus = c(0.0, 0, -0.0, 0)
+  yposplus = c(0.0, 0.01, 0.0, 0) # "EF<40%, No RA"  "EF<40%, RA"     "EF>=40%, No RA" "EF>=40%, RA"
 )
 ```
 
@@ -73,6 +114,6 @@ kmfunc(
 kmfunc(
   data = pdata %>% filter(casecontrol == "Case"),
   time = "sos_outtime_death", event = "sos_out_death", eventname = "Death (%)",
-  yposplus = c(0, -0.0, -0.0, 0.0)
+  yposplus = c(0, 0.007, -0.012, 0.005) # "EF<40%, No RA"  "EF<40%, RA"     "EF>=40%, No RA" "EF>=40%, RA"
 )
 ```
