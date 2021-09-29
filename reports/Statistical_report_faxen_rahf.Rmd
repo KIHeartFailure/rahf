@@ -220,6 +220,10 @@ The median (min-max) follow-up is
 The proportional hazards assumption was investigated using the scaled Schoenfeld 
 residuals (cox.zph in [@survival-package]). No action was deemed necessary. 
 
+```{r, child = "../src/overallinc.Rmd"}
+
+```
+
 \clearpage
 \newpage
 

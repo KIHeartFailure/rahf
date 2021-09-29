@@ -1,0 +1,67 @@
+```{r overallinc, cache=cacheon}
+
+incmy <- function(time, event, eventname, ravar) {
+  out <- data.frame(matrix(NA, ncol = 3, nrow = 1))
+
+  out[1, 1] <- eventname
+
+  colnames(out) <- c("Outcome", "No RA", "RA")
+
+  ev <- pdata %>%
+    filter(casecontrol == "Case") %>%
+    group_by(!!sym(ravar)) %>%
+    summarise(
+      ev = sum(!!sym(event) == "Yes"),
+      .groups = "drop"
+    )
+
+  s <- pdata %>%
+    filter(casecontrol == "Case") %>%
+    group_by(!!sym(ravar)) %>%
+    summarise(
+      s = sum(!!sym(time) / 365.25),
+      .groups = "drop"
+    )
+  r <- pois.exact(x = ev$ev, pt = s$s / 1000)
+
+  out[1, 2:3] <- paste0(
+    ev$ev, ", ",
+    fn(s$s, dig = 0), ", ",
+    fn(r$rate, dig = 1), " (",
+    fn(r$lower, dig = 1), "-",
+    fn(r$upper, dig = 1), ")"
+  )
+  return(out)
+}
+
+cvdhosp <- incmy(
+  time = "sos_outtime_deathcvhosphfstrokemi",
+  event = "sos_out_deathcvhosphfstrokemi",
+  eventname = "CVD/First HF/stroke/MI hospitalization (%)",
+  ravar = "sos_com_ra"
+)
+
+hfhosp <- incmy(
+  time = "sos_outtime_hosphf",
+  event = "sos_out_hosphf",
+  eventname = "First HF hospitalization (%)",
+  ravar = "sos_com_ra"
+)
+
+death <- incmy(
+  time = "sos_outtime_death",
+  event = "sos_out_death",
+  eventname = "Death (%)",
+  ravar = "sos_com_ra"
+)
+
+incall <- bind_rows(cvdhosp, hfhosp, death)
+
+
+footnote(default_kable(incall,
+  font_size = 10,
+  caption = sanitize_text("Incidence overall")
+),
+general = "Incidence = no events, sum py, rate/1000py (95% CI)."
+)
+```
