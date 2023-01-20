@@ -1,6 +1,7 @@
 pdata <- pdata %>%
   mutate(
     casecontrol = relevel(casecontrol, ref = "Control"),
+    shf_indexyear_cat = factor(shf_indexyear), 
 
     shf_ef_cat = factor(case_when(
       shf_ef == ">=50" ~ 3,

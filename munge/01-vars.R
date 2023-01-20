@@ -10,6 +10,7 @@ tabvars <- c(
 
   # organizational
   "shf_indexyear",
+  "shf_indexyear_cat",
   "shf_location",
   "shf_followuphfunit",
   "shf_followuplocation",
