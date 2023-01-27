@@ -94,7 +94,7 @@ kmfunc(
   time = "sos_outtime_deathcvhosphfstrokemi",
   event = "sos_out_deathcvhosphfstrokemi",
   eventcr = "sos_out_deathcvhosphfstrokemi_cr",
-  eventname = "CVD/First HF/stroke/MI hospitalization (%)",
+  eventname = "CVD/HF/stroke/MI hospitalization (%)",
   yposplus = c(0.0, 0, 0.0, 0.0)
 )
 ```
@@ -105,7 +105,7 @@ kmfunc(
   time = "sos_outtime_hosphf",
   event = "sos_out_hosphf",
   eventcr = "sos_out_hosphf_cr",
-  eventname = "First HF hospitalization (%)",
+  eventname = "HF hospitalization (%)",
   yposplus = c(0.0, 0.01, 0.0, 0) # "EF<40%, No RA"  "EF<40%, RA"     "EF>=40%, No RA" "EF>=40%, RA"
 )
 ```
