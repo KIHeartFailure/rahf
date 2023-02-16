@@ -1,4 +1,4 @@
-# R code for the project Association Between Rheumatoid Arthritis and Ejection Fraction in Incident Heart Failure
+# R code for the project Associations Between Rheumatoid Arthritis, Incident Heart Failure and Left Ventricular Ejection Fraction
 
 The aim of this R code is to be transparant and document the data handling 
 and statistical analyses performed for the project.
@@ -31,4 +31,4 @@ reports/Statistical_report_XX.Rmd
 
 ## Publication
 
-... 
+https://doi.org/10.1016/j.ahj.2023.02.001
